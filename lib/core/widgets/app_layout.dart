@@ -1,30 +1,40 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'app_sidebar.dart';
+import 'window_title_bar.dart';
 import 'package:go_router/go_router.dart';
 
 class AppLayout extends StatelessWidget {
   final Widget child;
-  
+
   const AppLayout({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    // Basic responsive layout
     final isDesktop = MediaQuery.of(context).size.width >= 800;
-    
-    // Get current route safely
     final GoRouterState state = GoRouterState.of(context);
     final String currentRoute = state.uri.toString();
+    final isNativeDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     return Scaffold(
-      body: Row(
+      body: Column(
         children: [
-          if (isDesktop) AppSidebar(currentRoute: currentRoute),
+          // Custom title bar — only on desktop platforms
+          if (isNativeDesktop) const WindowTitleBar(),
+
+          // Main content: sidebar + page
           Expanded(
-            child: Column(
+            child: Row(
               children: [
-                if (!isDesktop) AppBar(title: const Text('EasyPOS')),
-                Expanded(child: child),
+                if (isDesktop) AppSidebar(currentRoute: currentRoute),
+                Expanded(
+                  child: Column(
+                    children: [
+                      if (!isDesktop) AppBar(title: const Text('Yellow Pos')),
+                      Expanded(child: child),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

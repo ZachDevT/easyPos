@@ -5,8 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:drift/drift.dart' as drift;
-import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/buttons.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/database/database.dart';
 import '../providers/category_provider.dart';
@@ -21,351 +19,351 @@ class AddProductPanel extends ConsumerStatefulWidget {
 }
 
 class _AddProductPanelState extends ConsumerState<AddProductPanel> {
-  final _nameController = TextEditingController();
-  final _skuController = TextEditingController();
-  final _barcodeController = TextEditingController();
-  final _purchasePriceController = TextEditingController();
-  final _sellingPriceController = TextEditingController();
-  final _stockController = TextEditingController();
-  final _minStockController = TextEditingController();
-  
-  String _selectedUnit = 'pièce';
+  final _formKey = GlobalKey<FormState>();
+  late final _nameController = TextEditingController(text: widget.product?.name ?? '');
+  late final _skuController = TextEditingController(text: widget.product?.sku ?? '');
+  late final _barcodeController = TextEditingController(text: widget.product?.barcode ?? '');
+  late final _purchaseController = TextEditingController(text: (widget.product?.purchasePrice ?? '').toString());
+  late final _sellingController = TextEditingController(text: (widget.product?.sellingPrice ?? '').toString());
+  late final _stockController = TextEditingController(text: (widget.product?.stockQuantity ?? '').toString());
+  late final _minStockController = TextEditingController(text: (widget.product?.minimumStock ?? '').toString());
+
+  String _unit = 'pièce';
   String? _imagePath;
-  int? _selectedCategoryId;
-  int? _selectedBrandId;
-  List<Brand> _availableBrands = [];
+  int? _categoryId;
+  int? _brandId;
+  List<Brand> _brands = [];
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.product != null) {
-      _nameController.text = widget.product!.name;
-      _skuController.text = widget.product!.sku ?? '';
-      _barcodeController.text = widget.product!.barcode ?? '';
-      _purchasePriceController.text = widget.product!.purchasePrice.toString();
-      _sellingPriceController.text = widget.product!.sellingPrice.toString();
-      _stockController.text = widget.product!.stockQuantity.toString();
-      _minStockController.text = widget.product!.minimumStock.toString();
-      _selectedUnit = widget.product!.unit;
+      _unit = widget.product!.unit;
       _imagePath = widget.product!.imagePath;
-      _selectedCategoryId = widget.product!.categoryId;
-      _selectedBrandId = widget.product!.brandId;
-      if (_selectedCategoryId != null) {
-        _loadBrands(_selectedCategoryId!);
-      }
+      _categoryId = widget.product!.categoryId;
+      _brandId = widget.product!.brandId;
+      if (_categoryId != null) _loadBrands(_categoryId!);
     }
-  }
-
-  Future<void> _loadBrands(int categoryId) async {
-    final db = ref.read(databaseProvider);
-    final brands = await (db.select(db.brands)..where((b) => b.categoryId.equals(categoryId))).get();
-    setState(() {
-      _availableBrands = brands;
-      if (_selectedBrandId != null && !brands.any((b) => b.id == _selectedBrandId)) {
-        _selectedBrandId = null;
-      }
-    });
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _skuController.dispose();
-    _barcodeController.dispose();
-    _purchasePriceController.dispose();
-    _sellingPriceController.dispose();
-    _stockController.dispose();
-    _minStockController.dispose();
+    for (final c in [_nameController, _skuController, _barcodeController, _purchaseController, _sellingController, _stockController, _minStockController]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      final docDir = await getApplicationDocumentsDirectory();
-      final fileName = p.basename(pickedFile.path);
-      final savedImage = await File(pickedFile.path).copy(p.join(docDir.path, fileName));
-      
-      setState(() {
-        _imagePath = savedImage.path;
-      });
-    }
-  }
-
-  void _saveProduct() async {
-    final name = _nameController.text;
-    if (name.isEmpty) return;
-
+  Future<void> _loadBrands(int catId) async {
     final db = ref.read(databaseProvider);
-    
-    if (widget.product == null) {
-      await db.into(db.products).insert(
-        ProductsCompanion.insert(
-          name: name,
-          categoryId: drift.Value(_selectedCategoryId),
-          brandId: drift.Value(_selectedBrandId),
-          sku: drift.Value(_skuController.text),
-          barcode: drift.Value(_barcodeController.text),
-          purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
-          sellingPrice: drift.Value(double.tryParse(_sellingPriceController.text) ?? 0.0),
-          stockQuantity: drift.Value(double.tryParse(_stockController.text) ?? 0.0),
-          minimumStock: drift.Value(double.tryParse(_minStockController.text) ?? 0.0),
-          unit: drift.Value(_selectedUnit),
-          imagePath: drift.Value(_imagePath),
-        ),
-      );
-    } else {
-      await (db.update(db.products)..where((p) => p.id.equals(widget.product!.id))).write(
-        ProductsCompanion(
-          name: drift.Value(name),
-          categoryId: drift.Value(_selectedCategoryId),
-          brandId: drift.Value(_selectedBrandId),
-          sku: drift.Value(_skuController.text),
-          barcode: drift.Value(_barcodeController.text),
-          purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
-          sellingPrice: drift.Value(double.tryParse(_sellingPriceController.text) ?? 0.0),
-          stockQuantity: drift.Value(double.tryParse(_stockController.text) ?? 0.0),
-          minimumStock: drift.Value(double.tryParse(_minStockController.text) ?? 0.0),
-          unit: drift.Value(_selectedUnit),
-          imagePath: drift.Value(_imagePath),
-        ),
-      );
-    }
+    final brands = await (db.select(db.brands)..where((b) => b.categoryId.equals(catId))).get();
+    if (mounted) setState(() { _brands = brands; if (!brands.any((b) => b.id == _brandId)) _brandId = null; });
+  }
 
-    if (mounted) {
-      Navigator.of(context).pop();
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      final dir = await getApplicationDocumentsDirectory();
+      final saved = await File(picked.path).copy(p.join(dir.path, p.basename(picked.path)));
+      if (mounted) setState(() => _imagePath = saved.path);
     }
   }
-  
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    try {
+      final db = ref.read(databaseProvider);
+      final name = _nameController.text.trim();
+      final purchase = double.tryParse(_purchaseController.text) ?? 0;
+      final selling = double.tryParse(_sellingController.text) ?? 0;
+      final stock = double.tryParse(_stockController.text) ?? 0;
+      final minStock = double.tryParse(_minStockController.text) ?? 0;
+
+      if (widget.product == null) {
+        await db.into(db.products).insert(ProductsCompanion.insert(
+          name: name,
+          categoryId: drift.Value(_categoryId),
+          brandId: drift.Value(_brandId),
+          sku: drift.Value(_skuController.text.isEmpty ? null : _skuController.text),
+          barcode: drift.Value(_barcodeController.text.isEmpty ? null : _barcodeController.text),
+          purchasePrice: drift.Value(purchase),
+          sellingPrice: drift.Value(selling),
+          stockQuantity: drift.Value(stock),
+          minimumStock: drift.Value(minStock),
+          unit: drift.Value(_unit),
+          imagePath: drift.Value(_imagePath),
+        ));
+      } else {
+        await (db.update(db.products)..where((t) => t.id.equals(widget.product!.id))).write(ProductsCompanion(
+          name: drift.Value(name),
+          categoryId: drift.Value(_categoryId),
+          brandId: drift.Value(_brandId),
+          sku: drift.Value(_skuController.text.isEmpty ? null : _skuController.text),
+          barcode: drift.Value(_barcodeController.text.isEmpty ? null : _barcodeController.text),
+          purchasePrice: drift.Value(purchase),
+          sellingPrice: drift.Value(selling),
+          stockQuantity: drift.Value(stock),
+          minimumStock: drift.Value(minStock),
+          unit: drift.Value(_unit),
+          imagePath: drift.Value(_imagePath),
+        ));
+      }
+      if (mounted) Navigator.of(context).pop();
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currency = ref.watch(settingsProvider).currency;
+    final isEdit = widget.product != null;
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.product == null ? 'Ajouter un produit' : 'Modifier le produit'),
+        backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close, size: 20),
           onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          isEdit ? 'Modifier le produit' : 'Nouveau produit',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: PrimaryButton(
-              text: 'Enregistrer',
-              icon: Icons.save,
-              onPressed: _saveProduct,
+            padding: const EdgeInsets.only(right: 12),
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF111111),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: _isSaving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Enregistrer', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: const Color(0xFFE5E7EB), height: 1)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle('Image du produit (Optionnel)'),
-            _buildImagePicker(),
-            const SizedBox(height: 32),
-            
-            _buildSectionTitle('Informations de base'),
-            _buildTextField('Nom du produit', 'Ex: Coca-Cola 50cl', controller: _nameController),
-            Row(
-              children: [
-                Expanded(child: _buildCategoryDropdown()),
-                const SizedBox(width: 16),
-                Expanded(child: _buildBrandDropdown()),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildTextField('Description', 'Description du produit...', maxLines: 3),
-            
-            const SizedBox(height: 32),
-            _buildSectionTitle('Identification'),
-            Row(
-              children: [
-                Expanded(child: _buildTextField('SKU', 'Ex: COKE001', controller: _skuController)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildTextField('Code-barres', 'Scannez le code-barres', icon: Icons.qr_code_scanner, controller: _barcodeController)),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            _buildSectionTitle('Prix & Stock'),
-            Row(
-              children: [
-                Expanded(child: _buildTextField('Prix d\'achat ($currency)', '0.00', isNumber: true, controller: _purchasePriceController)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildTextField('Prix de vente ($currency)', '0.00', isNumber: true, controller: _sellingPriceController)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(child: _buildTextField('Stock initial', '0', isNumber: true, controller: _stockController)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildTextField('Stock minimum', '10', isNumber: true, controller: _minStockController)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildDropdown('Unité', ['pièce', 'boîte', 'kg', 'litre'], (val) {
-                  if (val != null) setState(() => _selectedUnit = val);
-                }, initialValue: _selectedUnit)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePicker() {
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        height: 150,
-        width: 150,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[300]!, width: 2),
-        ),
-        child: _imagePath != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.file(File(_imagePath!), fit: BoxFit.cover),
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image + Name row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.add_a_photo, size: 40, color: Colors.grey[400]),
-                  const SizedBox(height: 8),
-                  Text('Ajouter', style: TextStyle(color: Colors.grey[600])),
+                  // Image picker
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: 72, height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF9C3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFDE047), width: 1.5),
+                      ),
+                      child: _imagePath != null
+                          ? ClipRRect(borderRadius: BorderRadius.circular(11), child: Image.file(File(_imagePath!), fit: BoxFit.cover))
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate_outlined, size: 24, color: Color(0xFFCA8A04)),
+                                SizedBox(height: 4),
+                                Text('Photo', style: TextStyle(fontSize: 10, color: Color(0xFFCA8A04), fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _field('Nom du produit *', 'Ex: Coca-Cola 50cl', controller: _nameController, required: true),
+                  ),
                 ],
               ),
-      ),
-    );
-  }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          color: AppTheme.primaryColor,
+              const SizedBox(height: 16),
+              _section('Catégorie & Marque'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _categoryDropdown()),
+                const SizedBox(width: 12),
+                Expanded(child: _brandDropdown()),
+              ]),
+
+              const SizedBox(height: 16),
+              _section('Identification'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _field('SKU', 'Ex: COKE001', controller: _skuController)),
+                const SizedBox(width: 12),
+                Expanded(child: _field('Code-barres', 'Scannez…', controller: _barcodeController, icon: Icons.qr_code_scanner_outlined)),
+              ]),
+
+              const SizedBox(height: 16),
+              _section('Prix ($currency)'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _field('Prix d\'achat', '0', controller: _purchaseController, isNumber: true)),
+                const SizedBox(width: 12),
+                Expanded(child: _field('Prix de vente', '0', controller: _sellingController, isNumber: true)),
+              ]),
+
+              const SizedBox(height: 16),
+              _section('Stock'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _field('Quantité', '0', controller: _stockController, isNumber: true, required: true)),
+                const SizedBox(width: 12),
+                Expanded(child: _field('Stock minimum', '5', controller: _minStockController, isNumber: true)),
+                const SizedBox(width: 12),
+                Expanded(child: _unitDropdown()),
+              ]),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField(String label, String hint, {bool isNumber = false, int maxLines = 1, IconData? icon, TextEditingController? controller}) {
+  Widget _section(String title) => Text(
+    title,
+    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+  );
+
+  Widget _field(String label, String hint, {
+    TextEditingController? controller, bool isNumber = false, bool required = false, IconData? icon,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        TextField(
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+        const SizedBox(height: 4),
+        TextFormField(
           controller: controller,
           keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-          maxLines: maxLines,
+          style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
-            suffixIcon: icon != null ? Icon(icon) : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            hintStyle: const TextStyle(color: Color(0xFFD1D5DB), fontSize: 13),
+            suffixIcon: icon != null ? Icon(icon, size: 16, color: const Color(0xFF9CA3AF)) : null,
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFACC15), width: 2)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFEF4444))),
           ),
+          validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null : null,
         ),
       ],
     );
   }
-  
-  Widget _buildDropdown(String label, List<String> items, Function(String?) onChanged, {String? initialValue}) {
+
+  Widget _unitDropdown() {
+    const units = ['pièce', 'boîte', 'kg', 'litre', 'paquet', 'carton'];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
+        const Text('Unité', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+        const SizedBox(height: 4),
         DropdownButtonFormField<String>(
-          value: initialValue,
+          value: _unit,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF111111)),
           decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFACC15), width: 2)),
           ),
-          hint: const Text('Sélectionner'),
-          items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
-          onChanged: onChanged,
+          items: units.map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 13)))).toList(),
+          onChanged: (v) { if (v != null) setState(() => _unit = v); },
         ),
       ],
     );
   }
 
-  Widget _buildCategoryDropdown() {
-    final categoriesAsync = ref.watch(categoriesStreamProvider);
+  Widget _categoryDropdown() {
+    final catsAsync = ref.watch(categoriesStreamProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Catégorie', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(12)),
-          child: categoriesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Text('Erreur: $e'),
-            data: (categories) {
-              if (categories.isEmpty) return const Text('Aucune catégorie');
-              if (_selectedCategoryId == null && categories.isNotEmpty) {
-                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                   if (mounted) {
-                     setState(() => _selectedCategoryId = categories.first.id);
-                     _loadBrands(categories.first.id);
-                   }
-                 });
-              }
-              return DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  isExpanded: true,
-                  value: _selectedCategoryId,
-                  items: categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedCategoryId = val);
-                      _loadBrands(val);
-                    }
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBrandDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Marque (Optionnelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(12)),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              isExpanded: true,
-              hint: const Text('Aucune marque'),
-              value: _selectedBrandId,
-              items: _availableBrands.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
-              onChanged: (val) {
-                setState(() => _selectedBrandId = val);
+        const Text('Catégorie', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+        const SizedBox(height: 4),
+        catsAsync.when(
+          loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+          error: (e, _) => Text('Erreur', style: const TextStyle(color: Colors.red, fontSize: 12)),
+          data: (cats) {
+            if (cats.isEmpty) return const Text('Aucune catégorie', style: TextStyle(fontSize: 12, color: Colors.grey));
+            return DropdownButtonFormField<int>(
+              value: _categoryId,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF111111)),
+              decoration: InputDecoration(
+                hintText: 'Choisir…',
+                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFD1D5DB)),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFACC15), width: 2)),
+              ),
+              items: cats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, style: const TextStyle(fontSize: 13)))).toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => _categoryId = v);
+                  _loadBrands(v);
+                }
               },
-            ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _brandDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Marque (optionnel)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+        const SizedBox(height: 4),
+        DropdownButtonFormField<int>(
+          value: _brandId,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF111111)),
+          decoration: InputDecoration(
+            hintText: 'Aucune',
+            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFD1D5DB)),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFACC15), width: 2)),
           ),
+          items: [
+            const DropdownMenuItem<int>(value: null, child: Text('— Aucune —', style: TextStyle(fontSize: 13, color: Colors.grey))),
+            ..._brands.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name, style: const TextStyle(fontSize: 13)))),
+          ],
+          onChanged: (v) => setState(() => _brandId = v),
         ),
       ],
     );
