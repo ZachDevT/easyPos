@@ -15,15 +15,21 @@ class CategoriesPanel extends ConsumerStatefulWidget {
 
 class _CategoriesPanelState extends ConsumerState<CategoriesPanel> {
   final _nameController = TextEditingController();
+  int? _editingId;
 
   void _addCategory() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
 
     final db = ref.read(databaseProvider);
-    await db.into(db.categories).insert(
-      CategoriesCompanion.insert(name: name),
-    );
+    
+    if (_editingId == null) {
+      await db.into(db.categories).insert(CategoriesCompanion.insert(name: name));
+    } else {
+      await (db.update(db.categories)..where((c) => c.id.equals(_editingId!))).write(CategoriesCompanion(name: drift.Value(name)));
+      _editingId = null;
+    }
+
 
     _nameController.clear();
   }
@@ -82,7 +88,7 @@ class _CategoriesPanelState extends ConsumerState<CategoriesPanel> {
                 ElevatedButton.icon(
                   onPressed: _addCategory,
                   icon: const Icon(Icons.add),
-                  label: const Text('Ajouter'),
+                  label: Text(_editingId == null ? 'Ajouter' : 'Modifier'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,

@@ -48,7 +48,7 @@ class CustomersScreen extends ConsumerWidget {
                     _buildToolbar(),
                     const Divider(height: 1),
                     Expanded(
-                      child: _buildCustomersTable(ref),
+                      child: _buildCustomersTable(context, ref),
                     ),
                   ],
                 ),
@@ -80,7 +80,7 @@ class CustomersScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCustomersTable(WidgetRef ref) {
+  Widget _buildCustomersTable(BuildContext context, WidgetRef ref) {
     final currency = ref.watch(settingsProvider).currency;
     final customersAsync = ref.watch(customersStreamProvider);
 
@@ -115,8 +115,8 @@ class CustomersScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.visibility, size: 20, color: Colors.blue),
-                            onPressed: () {},
+                            icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                            onPressed: () { showRightSidePanel(context: context, builder: (context) => AddCustomerPanel(customer: c)); },
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, size: 20, color: Colors.red),

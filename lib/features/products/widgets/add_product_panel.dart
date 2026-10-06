@@ -13,13 +13,30 @@ import '../providers/category_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 
 class AddProductPanel extends ConsumerStatefulWidget {
-  const AddProductPanel({super.key});
+  final Product? product;
+  const AddProductPanel({super.key, this.product});
 
   @override
   ConsumerState<AddProductPanel> createState() => _AddProductPanelState();
 }
 
 class _AddProductPanelState extends ConsumerState<AddProductPanel> {
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.product != null) {
+      _nameController.text = widget.product!.name;
+      _skuController.text = widget.product!.sku ?? '';
+      _barcodeController.text = widget.product!.barcode ?? '';
+      _purchasePriceController.text = widget.product!.purchasePrice.toString();
+      _sellingPriceController.text = widget.product!.sellingPrice.toString();
+      _stockController.text = widget.product!.stockQuantity.toString();
+      _minStockController.text = widget.product!.minimumStock.toString();
+      _selectedUnit = widget.product!.unit;
+      _imagePath = widget.product!.imagePath;
+    }
+  }
   final _nameController = TextEditingController();
   final _skuController = TextEditingController();
   final _barcodeController = TextEditingController();
@@ -65,19 +82,38 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
 
     final db = ref.read(databaseProvider);
     
-    await db.into(db.products).insert(
-      ProductsCompanion.insert(
-        name: name,
-        sku: drift.Value(_skuController.text),
-        barcode: drift.Value(_barcodeController.text),
-        purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
-        sellingPrice: drift.Value(double.tryParse(_sellingPriceController.text) ?? 0.0),
-        stockQuantity: drift.Value(double.tryParse(_stockController.text) ?? 0.0),
-        minimumStock: drift.Value(double.tryParse(_minStockController.text) ?? 0.0),
-        unit: drift.Value(_selectedUnit),
-        imagePath: drift.Value(_imagePath),
-      ),
-    );
+    
+    if (widget.product == null) {
+      await db.into(db.products).insert(
+        ProductsCompanion.insert(
+          name: name,
+          categoryId: drift.Value(1), // TODO: select
+          sku: drift.Value(_skuController.text),
+          barcode: drift.Value(_barcodeController.text),
+          purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
+          sellingPrice: drift.Value(double.tryParse(_sellingPriceController.text) ?? 0.0),
+          stockQuantity: drift.Value(double.tryParse(_stockController.text) ?? 0.0),
+          minimumStock: drift.Value(double.tryParse(_minStockController.text) ?? 0.0),
+          unit: drift.Value(_selectedUnit),
+          imagePath: drift.Value(_imagePath),
+        ),
+      );
+    } else {
+      await (db.update(db.products)..where((p) => p.id.equals(widget.product!.id))).write(
+        ProductsCompanion(
+          name: drift.Value(name),
+          sku: drift.Value(_skuController.text),
+          barcode: drift.Value(_barcodeController.text),
+          purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
+          sellingPrice: drift.Value(double.tryParse(_sellingPriceController.text) ?? 0.0),
+          stockQuantity: drift.Value(double.tryParse(_stockController.text) ?? 0.0),
+          minimumStock: drift.Value(double.tryParse(_minStockController.text) ?? 0.0),
+          unit: drift.Value(_selectedUnit),
+          imagePath: drift.Value(_imagePath),
+        ),
+      );
+    }
+
 
     if (mounted) {
       Navigator.of(context).pop();
@@ -89,7 +125,7 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
     final currency = ref.watch(settingsProvider).currency;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajouter un produit'),
+        title: Text(widget.product == null ? 'Ajouter un produit' : 'Modifier le produit'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),

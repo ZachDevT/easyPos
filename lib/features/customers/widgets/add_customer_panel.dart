@@ -7,13 +7,25 @@ import '../../../core/database/database_provider.dart';
 import '../../../core/database/database.dart';
 
 class AddCustomerPanel extends ConsumerStatefulWidget {
-  const AddCustomerPanel({super.key});
+  final Customer? customer;
+  const AddCustomerPanel({super.key, this.customer});
 
   @override
   ConsumerState<AddCustomerPanel> createState() => _AddCustomerPanelState();
 }
 
 class _AddCustomerPanelState extends ConsumerState<AddCustomerPanel> {
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.customer != null) {
+      _nameController.text = widget.customer!.name;
+      _phoneController.text = widget.customer!.phone ?? '';
+      _emailController.text = widget.customer!.email ?? '';
+      _addressController.text = widget.customer!.address ?? '';
+    }
+  }
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -33,14 +45,27 @@ class _AddCustomerPanelState extends ConsumerState<AddCustomerPanel> {
     if (name.isEmpty) return;
 
     final db = ref.read(databaseProvider);
-    await db.into(db.customers).insert(
-      CustomersCompanion.insert(
-        name: name,
-        phone: drift.Value(_phoneController.text),
-        email: drift.Value(_emailController.text),
-        address: drift.Value(_addressController.text),
-      ),
-    );
+    
+    if (widget.customer == null) {
+      await db.into(db.customers).insert(
+        CustomersCompanion.insert(
+          name: name,
+          phone: drift.Value(_phoneController.text),
+          email: drift.Value(_emailController.text),
+          address: drift.Value(_addressController.text),
+        ),
+      );
+    } else {
+      await (db.update(db.customers)..where((c) => c.id.equals(widget.customer!.id))).write(
+        CustomersCompanion(
+          name: drift.Value(name),
+          phone: drift.Value(_phoneController.text),
+          email: drift.Value(_emailController.text),
+          address: drift.Value(_addressController.text),
+        ),
+      );
+    }
+
 
     if (mounted) {
       Navigator.of(context).pop();

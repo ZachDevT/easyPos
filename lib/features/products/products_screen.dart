@@ -233,8 +233,10 @@ class ProductsScreen extends ConsumerWidget {
                                 builder: (context) => const AdminAuthPanel(title: 'Modifier un produit'),
                               );
                               if (authed == true && context.mounted) {
-                                // Show edit panel (we can reuse AddProductPanel or similar in the future)
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Édition autorisée (Mode édition à venir)')));
+                                showRightSidePanel(
+                                  context: context,
+                                  builder: (context) => AddProductPanel(product: product),
+                                );
                               }
                             }
                           ),

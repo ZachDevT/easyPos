@@ -8,6 +8,7 @@ import '../../../core/database/database_provider.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/session_provider.dart';
+import '../../customers/providers/customer_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 
 class PaymentPanel extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class PaymentPanel extends ConsumerStatefulWidget {
 class _PaymentPanelState extends ConsumerState<PaymentPanel> {
   String _selectedMethod = 'ESPÈCES';
   final _tenderedController = TextEditingController();
+  int? _selectedCustomerId;
 
   @override
   void initState() {
@@ -43,6 +45,12 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Aucune caisse ouverte.')),
       );
+      return;
+    }
+
+    
+    if (_selectedMethod == 'CRÉDIT' && _selectedCustomerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner un client pour le crédit.')));
       return;
     }
 
@@ -85,9 +93,19 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
           ),
         );
       }
+
+      // 3. Update customer credit if needed
+      if (_selectedMethod == 'CRÉDIT' && _selectedCustomerId != null) {
+        final customer = await (db.select(db.customers)..where((c) => c.id.equals(_selectedCustomerId!))).getSingle();
+        await (db.update(db.customers)..where((c) => c.id.equals(_selectedCustomerId!))).write(
+          CustomersCompanion(
+            totalCredit: drift.Value(customer.totalCredit + widget.totalAmount),
+          ),
+        );
+      }
     });
 
-    // 3. Clear cart
+    // 4. Clear cart
     ref.read(cartProvider.notifier).clearCart();
     
     // Invalidate dashboard stats so they update
@@ -147,6 +165,25 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
             ),
             const SizedBox(height: 32),
             
+
+            if (_selectedMethod == 'CRÉDIT') ...[
+              const Text('Client', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              ref.watch(customersStreamProvider).when(
+                loading: () => const CircularProgressIndicator(),
+                error: (e, st) => Text('Erreur: $e'),
+                data: (customers) {
+                  return DropdownButtonFormField<int>(
+                    value: _selectedCustomerId,
+                    decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                    hint: const Text('Sélectionner un client'),
+                    items: customers.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                    onChanged: (val) => setState(() => _selectedCustomerId = val),
+                  );
+                },
+              ),
+            ],
+
             if (_selectedMethod == 'ESPÈCES') ...[
               Text('Montant reçu ($currency)', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
