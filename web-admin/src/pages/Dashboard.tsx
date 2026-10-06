@@ -10,7 +10,8 @@ import {
   LogOut,
   TrendingUp,
   AlertCircle,
-  PackageOpen
+  PackageOpen,
+  Lock
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -22,6 +23,12 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
+
+  // Password States
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -35,7 +42,6 @@ export default function Dashboard() {
         return;
       }
 
-      // 1. Fetch Profile & Boutique Info
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*, boutiques(*)')
@@ -47,7 +53,6 @@ export default function Dashboard() {
 
       const boutiqueId = profileData.boutique_id;
 
-      // 2. Fetch Products
       const { data: productsData } = await supabase
         .from('products')
         .select('*')
@@ -56,7 +61,6 @@ export default function Dashboard() {
       
       if (productsData) setProducts(productsData);
 
-      // 3. Fetch Sales
       const { data: salesData } = await supabase
         .from('sales')
         .select('*')
@@ -77,6 +81,26 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingPassword(true);
+    setPasswordMsg('');
+    setPasswordError(false);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      
+      setPasswordMsg('Mot de passe mis à jour avec succès.');
+      setNewPassword('');
+    } catch (err: any) {
+      setPasswordError(true);
+      setPasswordMsg(err.message || 'Une erreur est survenue.');
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
   // Calculations
   const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
   const totalProducts = products.length;
@@ -93,7 +117,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#FBFBFD] flex font-sans text-gray-900">
-      {/* Sidebar Navigation */}
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full z-10">
         <div className="p-8 flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-tr from-yellow-400 to-yellow-300 rounded-lg flex items-center justify-center shadow-sm">
@@ -119,7 +142,6 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 ml-64 p-10">
         <AnimatePresence mode="wait">
           
@@ -276,25 +298,63 @@ export default function Dashboard() {
           {activeTab === 'settings' && (
             <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <header className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight mb-2">Paramètres de la Boutique</h1>
-                <p className="text-gray-500">Informations techniques et de synchronisation.</p>
+                <h1 className="text-3xl font-bold tracking-tight mb-2">Paramètres</h1>
+                <p className="text-gray-500">Gérez vos informations techniques et votre sécurité.</p>
               </header>
 
-              <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-2xl">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">ID Unique de la Boutique</label>
-                    <div className="flex gap-3">
-                      <code className="flex-1 bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl text-gray-600 text-sm select-all">
-                        {profile?.boutique_id}
-                      </code>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Store Info */}
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                  <h2 className="text-xl font-bold mb-6">Informations Boutique</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">ID Unique de la Boutique</label>
+                      <div className="flex gap-3">
+                        <code className="flex-1 bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl text-gray-600 text-sm select-all">
+                          {profile?.boutique_id}
+                        </code>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">Cet identifiant relie vos caisses hors-ligne à ce tableau de bord cloud.</p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">Cet identifiant relie vos caisses hors-ligne à ce tableau de bord cloud.</p>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Devise Principale</label>
+                      <input disabled type="text" value={currency} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl text-gray-600 text-sm font-bold"/>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Devise Principale</label>
-                    <input disabled type="text" value={currency} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl text-gray-600 text-sm font-bold"/>
-                  </div>
+                </div>
+
+                {/* Security */}
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                  <h2 className="text-xl font-bold mb-6">Sécurité</h2>
+                  
+                  {passwordMsg && (
+                    <div className={`p-4 rounded-xl mb-6 text-sm font-medium ${passwordError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                      {passwordMsg}
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePasswordChange} className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">Nouveau mot de passe</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                          <Lock size={20} />
+                        </div>
+                        <input 
+                          type="password" 
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          className="w-full pl-12 pr-4 py-3 bg-gray-50/50 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-yellow-400/20 focus:border-yellow-400 transition-all"
+                          placeholder="••••••••"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" disabled={updatingPassword} className="w-full bg-gray-900 text-white rounded-xl py-3 font-medium hover:bg-gray-800 active:scale-[0.98] transition-all shadow-md disabled:opacity-50">
+                      {updatingPassword ? 'Mise à jour...' : 'Changer le mot de passe'}
+                    </button>
+                  </form>
                 </div>
               </div>
             </motion.div>
