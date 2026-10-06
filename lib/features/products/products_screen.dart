@@ -12,6 +12,7 @@ import 'widgets/add_product_panel.dart';
 import 'widgets/categories_panel.dart';
 import 'providers/product_provider.dart';
 import '../settings/providers/settings_provider.dart';
+import 'utils/import_export_service.dart';
 
 class ProductsScreen extends ConsumerWidget {
   const ProductsScreen({super.key});
@@ -46,7 +47,7 @@ class ProductsScreen extends ConsumerWidget {
   void _showCategoriesPanel(BuildContext context, WidgetRef ref) async {
     final hasPin = ref.read(adminProvider.notifier).hasPin;
     if (!hasPin) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez configurer un PIN en ajoutant un produit d\'abord.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Veuillez configurer un PIN en ajoutant un produit d'abord.")));
       return;
     }
 
@@ -100,7 +101,7 @@ class ProductsScreen extends ConsumerWidget {
               child: Card(
                 child: Column(
                   children: [
-                    _buildToolbar(),
+                    _buildToolbar(context, ref),
                     const Divider(height: 1),
                     Expanded(
                       child: _buildProductsTable(context, ref),
@@ -115,7 +116,7 @@ class ProductsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildToolbar() {
+  Widget _buildToolbar(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -133,16 +134,41 @@ class ProductsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 16),
-          SecondaryButton(
-            text: 'Importer Excel/CSV',
-            icon: Icons.upload_file,
-            onPressed: () {},
-          ),
-          const SizedBox(width: 16),
-          SecondaryButton(
-            text: 'Exporter',
-            icon: Icons.download,
-            onPressed: () {},
+          PopupMenuButton<String>(
+            tooltip: 'Import / Export',
+            icon: const Icon(Icons.import_export, color: AppTheme.primaryColor),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'template', child: Text('Télécharger le Modèle CSV')),
+              const PopupMenuItem(value: 'import', child: Text('Importer (CSV)')),
+              const PopupMenuItem(value: 'export', child: Text('Exporter les produits (CSV)')),
+            ],
+            onSelected: (value) async {
+              final db = ref.read(databaseProvider);
+              final service = ImportExportService(db);
+              
+              if (value == 'template') {
+                final path = await service.downloadTemplate();
+                if (context.mounted && path != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Modèle sauvegardé dans: \$path'), backgroundColor: AppTheme.successColor));
+                }
+              } else if (value == 'import') {
+                try {
+                  final count = await service.importProducts();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\$count produits importés avec succès!'), backgroundColor: AppTheme.successColor));
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: \${e.toString()}'), backgroundColor: AppTheme.dangerColor));
+                  }
+                }
+              } else if (value == 'export') {
+                final path = await service.exportProducts();
+                if (context.mounted && path != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exporté vers: \$path'), backgroundColor: AppTheme.successColor));
+                }
+              }
+            },
           ),
         ],
       ),
@@ -155,7 +181,7 @@ class ProductsScreen extends ConsumerWidget {
     
     return productsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Erreur: $err')),
+      error: (err, stack) => Center(child: Text('Erreur: \$err')),
       data: (products) {
         if (products.isEmpty) {
           return const Center(child: Text('Aucun produit trouvé.'));
@@ -170,10 +196,9 @@ class ProductsScreen extends ConsumerWidget {
               columns: const [
                 DataColumn(label: Text('Produit')),
                 DataColumn(label: Text('SKU')),
-                DataColumn(label: Text('Catégorie')),
+                DataColumn(label: Text('Prix Achat')),
                 DataColumn(label: Text('Prix Vente')),
                 DataColumn(label: Text('Stock')),
-                DataColumn(label: Text('Statut')),
                 DataColumn(label: Text('Actions')),
               ],
               rows: products.map((product) {
@@ -194,7 +219,7 @@ class ProductsScreen extends ConsumerWidget {
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.file(
-                                        File(product.imagePath!), // Note: Use dart:io File, handled via import.
+                                        File(product.imagePath!), 
                                         fit: BoxFit.cover,
                                       ),
                                     )
@@ -206,10 +231,8 @@ class ProductsScreen extends ConsumerWidget {
                         ),
                       ),
                       DataCell(Text(product.sku ?? '-')),
-                      DataCell(Text(product.barcode ?? '-')),
-                      DataCell(Text('Catégorie ${product.categoryId}')),
-                      DataCell(Text('${product.purchasePrice} $currency')),
-                      DataCell(Text('${product.sellingPrice} $currency', style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold))),
+                      DataCell(Text('\${product.purchasePrice} \$currency')),
+                      DataCell(Text('\${product.sellingPrice} \$currency', style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold))),
                       DataCell(
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -220,7 +243,7 @@ class ProductsScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${product.stockQuantity} ${product.unit}',
+                            '\${product.stockQuantity} \${product.unit}',
                             style: TextStyle(
                               color: product.stockQuantity <= product.minimumStock 
                                   ? AppTheme.dangerColor
