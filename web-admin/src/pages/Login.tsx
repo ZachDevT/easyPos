@@ -52,7 +52,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">Mot de passe</label>
+            <div className="flex justify-between items-center mb-2 ml-1"><label className="block text-sm font-medium text-gray-700">Mot de passe</label><Link to="/forgot-password" className="text-sm font-medium text-yellow-600 hover:underline">Mot de passe oublié ?</Link></div>
             <input 
               type="password" 
               value={password}
