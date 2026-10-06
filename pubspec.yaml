@@ -52,6 +52,8 @@ dependencies:
   sqlite3: ^3.7.0
   window_manager: ^0.5.2
   fl_chart: ^1.2.0
+  supabase_flutter: ^2.18.0
+  connectivity_plus: ^7.3.2
 
 dev_dependencies:
   flutter_test:
