@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "yellowpos-admin"
+  },
+  "targets": {
+    "yellowpos-admin": {
+      "hosting": {
+        "yellowpos": [
+          "yellowpos"
+        ]
+      }
+    }
+  }
+}
