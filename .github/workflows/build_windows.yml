@@ -34,8 +34,13 @@ jobs:
         Copy-Item "C:\Windows\System32\vcruntime140.dll" -Destination "build\windows\x64\runner\Release\"
         Copy-Item "C:\Windows\System32\vcruntime140_1.dll" -Destination "build\windows\x64\runner\Release\"
 
+    - name: Compile Installer
+      uses: MinhasKamal/setup-inno-setup@v1
+      with:
+        path: windows/runner/installer.iss
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: EasyPOS-Windows-Release
-        path: build/windows/x64/runner/Release/
+        name: EasyPOS-Windows-Installer
+        path: windows/runner/Output/EasyPOS_Setup.exe
