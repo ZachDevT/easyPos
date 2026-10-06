@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/stat_card.dart';
 import '../../core/theme/app_theme.dart';
 import 'providers/dashboard_provider.dart';
+import '../../features/settings/providers/settings_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final statsAsync = ref.watch(dashboardStatsProvider);
 
     return Scaffold(
@@ -48,7 +50,7 @@ class DashboardScreen extends ConsumerWidget {
                       children: [
                         StatCard(
                           title: 'Ventes aujourd\'hui',
-                          value: '${stats.totalSales} CDF',
+                          value: '${stats.totalSales} $currency',
                           icon: Icons.payments_outlined,
                           color: AppTheme.primaryColor,
                         ),
@@ -60,7 +62,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         StatCard(
                           title: 'Bénéfice estimé',
-                          value: '${stats.estimatedProfit} CDF',
+                          value: '${stats.estimatedProfit} $currency',
                           icon: Icons.trending_up,
                           color: AppTheme.warningColor,
                         ),

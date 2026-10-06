@@ -8,6 +8,7 @@ import '../../../core/database/database_provider.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/session_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
 class PaymentPanel extends ConsumerStatefulWidget {
   final double totalAmount;
@@ -102,7 +103,8 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final currency = ref.watch(settingsProvider).currency;
+        return Scaffold(
       appBar: AppBar(
         title: const Text('Paiement'),
         leading: IconButton(
@@ -125,7 +127,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total à payer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                  Text('${widget.totalAmount} CDF', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                  Text('${widget.totalAmount} $currency', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
                 ],
               ),
             ),
@@ -146,7 +148,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
             const SizedBox(height: 32),
             
             if (_selectedMethod == 'ESPÈCES') ...[
-              const Text('Montant reçu (CDF)', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Montant reçu ($currency)', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextField(
                 controller: _tenderedController,
@@ -208,6 +210,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
   }
 
   Widget _buildChangeDue() {
+    final currency = ref.watch(settingsProvider).currency;
     final tendered = double.tryParse(_tenderedController.text) ?? 0.0;
     final change = tendered - widget.totalAmount;
     
@@ -222,7 +225,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
         children: [
           const Text('Monnaie à rendre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           Text(
-            change >= 0 ? '$change CDF' : 'Montant insuffisant',
+            change >= 0 ? '$change $currency' : 'Montant insuffisant',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

@@ -5,7 +5,7 @@ import 'package:printing/printing.dart';
 import '../database/database.dart';
 
 class PrinterService {
-  static Future<void> printReceipt(Sale sale, List<SaleItem> items, List<Product> products) async {
+  static Future<void> printReceipt(Sale sale, List<SaleItem> items, List<Product> products, String currency, String storeName, String footer) async {
     final doc = pw.Document();
 
     doc.addPage(
@@ -16,11 +16,11 @@ class PrinterService {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Center(
-                child: pw.Text('EasyPOS', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text(storeName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(height: 8),
               pw.Center(
-                child: pw.Text('Merci pour votre visite!'),
+                child: pw.Text(footer),
               ),
               pw.Divider(),
               pw.Text('Facture: ${sale.saleNumber}'),
@@ -33,7 +33,7 @@ class PrinterService {
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Expanded(child: pw.Text('${item.quantity}x ${product.name}')),
-                    pw.Text('${item.total} CDF'),
+                    pw.Text('${item.total} $currency'),
                   ],
                 );
               }),
@@ -42,7 +42,7 @@ class PrinterService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text('TOTAL', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                  pw.Text('${sale.total} CDF', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                  pw.Text('${sale.total} $currency', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
                 ],
               ),
               pw.Divider(),

@@ -9,6 +9,7 @@ import 'providers/cart_provider.dart';
 import 'providers/session_provider.dart';
 import 'widgets/opening_balance_dialog.dart';
 import 'widgets/payment_panel.dart';
+import '../../features/settings/providers/settings_provider.dart';
 
 class PosScreen extends ConsumerWidget {
   const PosScreen({super.key});
@@ -127,6 +128,7 @@ class PosScreen extends ConsumerWidget {
   }
 
   Widget _buildProductGrid(BuildContext context, WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final productsAsync = ref.watch(productsStreamProvider);
 
     return productsAsync.when(
@@ -184,7 +186,7 @@ class PosScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${product.sellingPrice} CDF',
+                            '${product.sellingPrice} $currency',
                             style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -218,6 +220,7 @@ class PosScreen extends ConsumerWidget {
   }
 
   Widget _buildCartItems(BuildContext context, WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final cartItems = ref.watch(cartProvider);
 
     if (cartItems.isEmpty) {
@@ -257,7 +260,7 @@ class PosScreen extends ConsumerWidget {
             ),
             Expanded(
               flex: 1,
-              child: Text('${item.total} CDF', textAlign: TextAlign.right),
+              child: Text('${item.total} $currency', textAlign: TextAlign.right),
             ),
           ],
         );
@@ -266,6 +269,7 @@ class PosScreen extends ConsumerWidget {
   }
 
   Widget _buildCartSummary(BuildContext context, WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final subtotal = ref.watch(cartProvider.notifier).subtotal;
     // For now, no discount logic
     final total = subtotal;
@@ -288,15 +292,15 @@ class PosScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Sous-total:', style: TextStyle(color: Colors.grey)),
-              Text('$subtotal CDF', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('$subtotal $currency', style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Réduction:', style: TextStyle(color: Colors.grey)),
-              Text('0 CDF', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('0 $currency', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const Padding(
@@ -308,7 +312,7 @@ class PosScreen extends ConsumerWidget {
             children: [
               Text('TOTAL:', style: Theme.of(context).textTheme.titleLarge),
               Text(
-                '$total CDF',
+                '$total $currency',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: AppTheme.primaryColor,
                   fontSize: 28,

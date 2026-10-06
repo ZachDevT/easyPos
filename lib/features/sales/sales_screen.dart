@@ -5,6 +5,7 @@ import '../../core/widgets/buttons.dart';
 import '../../core/database/database_provider.dart';
 import '../../core/utils/printer_service.dart';
 import 'providers/sales_provider.dart';
+import '../settings/providers/settings_provider.dart';
 
 class SalesScreen extends ConsumerWidget {
   const SalesScreen({super.key});
@@ -80,6 +81,7 @@ class SalesScreen extends ConsumerWidget {
   }
 
   Widget _buildSalesTable(WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final salesAsync = ref.watch(salesHistoryProvider);
 
     return salesAsync.when(
@@ -109,7 +111,7 @@ class SalesScreen extends ConsumerWidget {
                   cells: [
                     DataCell(Text(sale.saleNumber, style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text(dateStr)),
-                    DataCell(Text('${sale.total} CDF', style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold))),
+                    DataCell(Text('${sale.total} $currency', style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold))),
                     DataCell(_buildPaymentBadge(sale.paymentMethod)),
                     DataCell(
                       Row(
@@ -130,7 +132,8 @@ class SalesScreen extends ConsumerWidget {
                               final productIds = items.map((i) => i.productId).toList();
                               final products = await (db.select(db.products)..where((p) => p.id.isIn(productIds))).get();
                               
-                              await PrinterService.printReceipt(sale, items, products);
+                              final settings = ref.read(settingsProvider);
+                              await PrinterService.printReceipt(sale, items, products, settings.currency, settings.storeName, settings.receiptFooter);
                             },
                           ),
                         ],

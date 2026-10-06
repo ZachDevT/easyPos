@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/database/database.dart';
 import '../../../core/database/database_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
 class OpeningBalanceDialog extends ConsumerStatefulWidget {
   const OpeningBalanceDialog({super.key});
@@ -42,6 +43,7 @@ class _OpeningBalanceDialogState extends ConsumerState<OpeningBalanceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final currency = ref.watch(settingsProvider).currency;
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -70,7 +72,7 @@ class _OpeningBalanceDialogState extends ConsumerState<OpeningBalanceDialog> {
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                labelText: 'Fond de caisse (CDF)',
+                labelText: 'Fond de caisse ($currency)',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

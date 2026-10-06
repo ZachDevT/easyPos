@@ -6,6 +6,7 @@ import '../../../core/widgets/buttons.dart';
 import '../../../core/database/database.dart';
 import '../../../core/database/database_provider.dart';
 import '../providers/session_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
 class ClosingBalancePanel extends ConsumerStatefulWidget {
   const ClosingBalancePanel({super.key});
@@ -85,6 +86,7 @@ class _ClosingBalancePanelState extends ConsumerState<ClosingBalancePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final currency = ref.watch(settingsProvider).currency;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -124,19 +126,19 @@ class _ClosingBalancePanelState extends ConsumerState<ClosingBalancePanel> {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Fond de caisse initial', '${session.openingBalance} CDF'),
+                  _buildSummaryRow('Fond de caisse initial', '${session.openingBalance} $currency'),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
                     child: Divider(),
                   ),
-                  _buildSummaryRow('Total des ventes en espèces', '${_expectedCash - session.openingBalance} CDF'),
+                  _buildSummaryRow('Total des ventes en espèces', '${_expectedCash - session.openingBalance} $currency'),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
                     child: Divider(),
                   ),
                   _buildSummaryRow(
                     'Espèces attendues en caisse', 
-                    '$_expectedCash CDF', 
+                    '$_expectedCash $currency', 
                     isBold: true,
                   ),
                 ],
@@ -158,7 +160,7 @@ class _ClosingBalancePanelState extends ConsumerState<ClosingBalancePanel> {
               controller: _actualCashController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                labelText: 'Montant réel en caisse (CDF)',
+                labelText: 'Montant réel en caisse ($currency)',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
               ),

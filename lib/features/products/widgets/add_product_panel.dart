@@ -10,6 +10,7 @@ import '../../../core/widgets/buttons.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/database/database.dart';
 import '../providers/category_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
 class AddProductPanel extends ConsumerStatefulWidget {
   const AddProductPanel({super.key});
@@ -85,6 +86,7 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
   
   @override
   Widget build(BuildContext context) {
+    final currency = ref.watch(settingsProvider).currency;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ajouter un produit'),
@@ -138,9 +140,9 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
             _buildSectionTitle('Prix & Stock'),
             Row(
               children: [
-                Expanded(child: _buildTextField('Prix d\'achat (CDF)', '0.00', isNumber: true, controller: _purchasePriceController)),
+                Expanded(child: _buildTextField('Prix d\'achat ($currency)', '0.00', isNumber: true, controller: _purchasePriceController)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildTextField('Prix de vente (CDF)', '0.00', isNumber: true, controller: _sellingPriceController)),
+                Expanded(child: _buildTextField('Prix de vente ($currency)', '0.00', isNumber: true, controller: _sellingPriceController)),
               ],
             ),
             const SizedBox(height: 16),

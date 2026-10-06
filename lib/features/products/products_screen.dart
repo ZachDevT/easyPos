@@ -11,6 +11,7 @@ import '../../core/database/database_provider.dart';
 import 'widgets/add_product_panel.dart';
 import 'widgets/categories_panel.dart';
 import 'providers/product_provider.dart';
+import '../settings/providers/settings_provider.dart';
 
 class ProductsScreen extends ConsumerWidget {
   const ProductsScreen({super.key});
@@ -149,6 +150,7 @@ class ProductsScreen extends ConsumerWidget {
   }
 
   Widget _buildProductsTable(BuildContext context, WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final productsAsync = ref.watch(productsStreamProvider);
     
     return productsAsync.when(
@@ -198,7 +200,7 @@ class ProductsScreen extends ConsumerWidget {
                     )),
                     DataCell(Text(product.sku ?? '-')),
                     DataCell(Text(product.categoryId?.toString() ?? '-')),
-                    DataCell(Text('${product.sellingPrice} CDF')),
+                    DataCell(Text('${product.sellingPrice} $currency')),
                     DataCell(Text('${product.stockQuantity} ${product.unit}')),
                     DataCell(
                       Container(

@@ -6,6 +6,7 @@ import '../../core/widgets/right_side_panel.dart';
 import '../../core/database/database_provider.dart';
 import 'widgets/add_customer_panel.dart';
 import 'providers/customer_provider.dart';
+import '../settings/providers/settings_provider.dart';
 
 class CustomersScreen extends ConsumerWidget {
   const CustomersScreen({super.key});
@@ -80,6 +81,7 @@ class CustomersScreen extends ConsumerWidget {
   }
 
   Widget _buildCustomersTable(WidgetRef ref) {
+    final currency = ref.watch(settingsProvider).currency;
     final customersAsync = ref.watch(customersStreamProvider);
 
     return customersAsync.when(
@@ -107,7 +109,7 @@ class CustomersScreen extends ConsumerWidget {
                     DataCell(Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text(c.phone ?? '-')),
                     DataCell(Text(c.email ?? '-')),
-                    DataCell(Text('${c.totalCredit} CDF', style: TextStyle(color: c.totalCredit > 0 ? AppTheme.dangerColor : AppTheme.successColor, fontWeight: FontWeight.bold))),
+                    DataCell(Text('${c.totalCredit} $currency', style: TextStyle(color: c.totalCredit > 0 ? AppTheme.dangerColor : AppTheme.successColor, fontWeight: FontWeight.bold))),
                     DataCell(
                       Row(
                         mainAxisSize: MainAxisSize.min,
