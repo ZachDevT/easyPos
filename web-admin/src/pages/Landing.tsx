@@ -66,8 +66,8 @@ export default function Landing() {
               <Link to="/register" className="bg-gray-900 text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 hover:scale-105 active:scale-95">
                 Créer ma Boutique <ArrowRight size={20} />
               </Link>
-              <a href="#" className="bg-white/80 backdrop-blur-md text-gray-900 border border-gray-200 px-8 py-4 rounded-full text-lg font-medium hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm hover:shadow hover:scale-105 active:scale-95">
-                <Download size={20} /> Télécharger l'App
+              <a href="/downloads/YellowPos-Windows.zip" download className="bg-white/80 backdrop-blur-md text-gray-900 border border-gray-200 px-8 py-4 rounded-full text-lg font-medium hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm hover:shadow hover:scale-105 active:scale-95">
+                <Download size={20} /> Télécharger l'App (Windows)
               </a>
             </motion.div>
           </motion.div>

@@ -13,21 +13,20 @@ class ImportExportService {
   Future<String?> downloadTemplate() async {
     try {
       final directory = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
-      final String path = '\${directory.path}/modele_produits.csv';
+      final String path = '${directory.path}/modele_produits.csv';
       final File file = File(path);
 
-      // Define columns based on French UI
-      List<List<dynamic>> rows = [
+      final List<List<dynamic>> rows = [
         ["Nom", "CodeBarre", "SKU", "PrixAchat", "PrixVente", "Stock", "StockMinimum", "Unite"],
         ["Coca-Cola 50cl", "123456789", "CC50", 0.5, 1.0, 100, 10, "pièce"],
-        ["Pain", "987654321", "PAIN01", 0.2, 0.5, 50, 5, "pièce"]
+        ["Pain", "987654321", "PAIN01", 0.2, 0.5, 50, 5, "pièce"],
       ];
 
-      String csv = const ListToCsvConverter().convert(rows);
-      await file.writeAsString(csv);
+      final String csvContent = CsvEncoder().convert(rows);
+      await file.writeAsString(csvContent);
       return path;
     } catch (e) {
-      print("Erreur création modèle: \$e");
+      print("Erreur création modèle: $e");
       return null;
     }
   }
@@ -35,17 +34,14 @@ class ImportExportService {
   Future<String?> exportProducts() async {
     try {
       final directory = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
-      final String path = '\${directory.path}/export_produits_\${DateTime.now().millisecondsSinceEpoch}.csv';
+      final String path = '${directory.path}/export_produits_${DateTime.now().millisecondsSinceEpoch}.csv';
       final File file = File(path);
 
       final products = await db.select(db.products).get();
 
-      List<List<dynamic>> rows = [
-        ["Nom", "CodeBarre", "SKU", "PrixAchat", "PrixVente", "Stock", "StockMinimum", "Unite"]
-      ];
-
-      for (var p in products) {
-        rows.add([
+      final List<List<dynamic>> rows = [
+        ["Nom", "CodeBarre", "SKU", "PrixAchat", "PrixVente", "Stock", "StockMinimum", "Unite"],
+        ...products.map((p) => [
           p.name,
           p.barcode ?? "",
           p.sku ?? "",
@@ -54,14 +50,14 @@ class ImportExportService {
           p.stockQuantity,
           p.minimumStock,
           p.unit,
-        ]);
-      }
+        ]),
+      ];
 
-      String csv = const ListToCsvConverter().convert(rows);
-      await file.writeAsString(csv);
+      final String csvContent = CsvEncoder().convert(rows);
+      await file.writeAsString(csvContent);
       return path;
     } catch (e) {
-      print("Erreur export: \$e");
+      print("Erreur export: $e");
       return null;
     }
   }
@@ -69,26 +65,26 @@ class ImportExportService {
   Future<int> importProducts() async {
     int importedCount = 0;
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final List<PlatformFile> files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
 
-      if (result != null && result.files.single.path != null) {
-        File file = File(result.files.single.path!);
-        final input = await file.readAsString();
-        final fields = const CsvToListConverter().convert(input);
-        
-        // Skip header
-        if (fields.length > 1) {
+      if (files.isNotEmpty && files.first.path != null) {
+        final File file = File(files.first.path!);
+        final String input = await file.readAsString();
+
+        final List<List<dynamic>> rows = CsvDecoder().convert(input);
+
+        if (rows.length > 1) {
           await db.transaction(() async {
-            for (int i = 1; i < fields.length; i++) {
-              final row = fields[i];
+            for (int i = 1; i < rows.length; i++) {
+              final row = rows[i];
               if (row.isEmpty || row[0].toString().isEmpty) continue;
 
               final name = row[0].toString();
-              final barcode = row.length > 1 ? row[1].toString() : null;
-              final sku = row.length > 2 ? row[2].toString() : null;
+              final barcode = row.length > 1 && row[1].toString().isNotEmpty ? row[1].toString() : null;
+              final sku = row.length > 2 && row[2].toString().isNotEmpty ? row[2].toString() : null;
               final purchasePrice = row.length > 3 ? double.tryParse(row[3].toString()) ?? 0.0 : 0.0;
               final sellingPrice = row.length > 4 ? double.tryParse(row[4].toString()) ?? 0.0 : 0.0;
               final stock = row.length > 5 ? double.tryParse(row[5].toString()) ?? 0.0 : 0.0;
@@ -113,8 +109,8 @@ class ImportExportService {
         }
       }
     } catch (e) {
-      print("Erreur import: \$e");
-      throw Exception("Format de fichier invalide.");
+      print("Erreur import: $e");
+      throw Exception("Format de fichier invalide: $e");
     }
     return importedCount;
   }
