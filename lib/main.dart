@@ -46,7 +46,7 @@ class EasyPOSApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'EasyPOS',
+      title: 'Yellow Pos',
       theme: AppTheme.lightTheme,
       routerConfig: appRouter,
     );

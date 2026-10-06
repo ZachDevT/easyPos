@@ -47,7 +47,7 @@ class PrinterService {
               ),
               pw.Divider(),
               pw.Center(
-                child: pw.Text('Logiciel EasyPOS'),
+                child: pw.Text('Logiciel Yellow Pos'),
               ),
             ],
           );

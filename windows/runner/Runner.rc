@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.easypos" "\0"
-            VALUE "FileDescription", "easypos" "\0"
+            VALUE "CompanyName", "com.yellowpos" "\0"
+            VALUE "FileDescription", "yellowpos" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "easypos" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.easypos. All rights reserved." "\0"
-            VALUE "OriginalFilename", "easypos.exe" "\0"
-            VALUE "ProductName", "easypos" "\0"
+            VALUE "InternalName", "yellowpos" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.yellowpos. All rights reserved." "\0"
+            VALUE "OriginalFilename", "yellowpos.exe" "\0"
+            VALUE "ProductName", "yellowpos" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
