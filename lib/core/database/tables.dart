@@ -6,12 +6,19 @@ class Categories extends Table {
   TextColumn get color => text().nullable()();
 }
 
+class Brands extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  IntColumn get categoryId => integer().references(Categories, #id)();
+}
+
 class Products extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 200)();
   TextColumn get barcode => text().nullable()();
   TextColumn get sku => text().nullable()();
   IntColumn get categoryId => integer().nullable().references(Categories, #id)();
+  IntColumn get brandId => integer().nullable().references(Brands, #id)();
   RealColumn get purchasePrice => real().withDefault(const Constant(0.0))();
   RealColumn get sellingPrice => real().withDefault(const Constant(0.0))();
   RealColumn get stockQuantity => real().withDefault(const Constant(0.0))();

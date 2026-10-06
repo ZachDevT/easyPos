@@ -21,6 +21,19 @@ class AddProductPanel extends ConsumerStatefulWidget {
 }
 
 class _AddProductPanelState extends ConsumerState<AddProductPanel> {
+  final _nameController = TextEditingController();
+  final _skuController = TextEditingController();
+  final _barcodeController = TextEditingController();
+  final _purchasePriceController = TextEditingController();
+  final _sellingPriceController = TextEditingController();
+  final _stockController = TextEditingController();
+  final _minStockController = TextEditingController();
+  
+  String _selectedUnit = 'pièce';
+  String? _imagePath;
+  int? _selectedCategoryId;
+  int? _selectedBrandId;
+  List<Brand> _availableBrands = [];
 
   @override
   void initState() {
@@ -35,18 +48,24 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
       _minStockController.text = widget.product!.minimumStock.toString();
       _selectedUnit = widget.product!.unit;
       _imagePath = widget.product!.imagePath;
+      _selectedCategoryId = widget.product!.categoryId;
+      _selectedBrandId = widget.product!.brandId;
+      if (_selectedCategoryId != null) {
+        _loadBrands(_selectedCategoryId!);
+      }
     }
   }
-  final _nameController = TextEditingController();
-  final _skuController = TextEditingController();
-  final _barcodeController = TextEditingController();
-  final _purchasePriceController = TextEditingController();
-  final _sellingPriceController = TextEditingController();
-  final _stockController = TextEditingController();
-  final _minStockController = TextEditingController();
-  
-  String _selectedUnit = 'pièce';
-  String? _imagePath;
+
+  Future<void> _loadBrands(int categoryId) async {
+    final db = ref.read(databaseProvider);
+    final brands = await (db.select(db.brands)..where((b) => b.categoryId.equals(categoryId))).get();
+    setState(() {
+      _availableBrands = brands;
+      if (_selectedBrandId != null && !brands.any((b) => b.id == _selectedBrandId)) {
+        _selectedBrandId = null;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -65,7 +84,6 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     
     if (pickedFile != null) {
-      // In a real app, you might want to copy this to the app's document directory
       final docDir = await getApplicationDocumentsDirectory();
       final fileName = p.basename(pickedFile.path);
       final savedImage = await File(pickedFile.path).copy(p.join(docDir.path, fileName));
@@ -78,16 +96,16 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
 
   void _saveProduct() async {
     final name = _nameController.text;
-    if (name.isEmpty) return; // Simple validation
+    if (name.isEmpty) return;
 
     final db = ref.read(databaseProvider);
-    
     
     if (widget.product == null) {
       await db.into(db.products).insert(
         ProductsCompanion.insert(
           name: name,
-          categoryId: drift.Value(1), // TODO: select
+          categoryId: drift.Value(_selectedCategoryId),
+          brandId: drift.Value(_selectedBrandId),
           sku: drift.Value(_skuController.text),
           barcode: drift.Value(_barcodeController.text),
           purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
@@ -102,6 +120,8 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
       await (db.update(db.products)..where((p) => p.id.equals(widget.product!.id))).write(
         ProductsCompanion(
           name: drift.Value(name),
+          categoryId: drift.Value(_selectedCategoryId),
+          brandId: drift.Value(_selectedBrandId),
           sku: drift.Value(_skuController.text),
           barcode: drift.Value(_barcodeController.text),
           purchasePrice: drift.Value(double.tryParse(_purchasePriceController.text) ?? 0.0),
@@ -113,7 +133,6 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
         ),
       );
     }
-
 
     if (mounted) {
       Navigator.of(context).pop();
@@ -156,7 +175,7 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
               children: [
                 Expanded(child: _buildCategoryDropdown()),
                 const SizedBox(width: 16),
-                Expanded(child: _buildTextField('Marque', 'Ex: Coca-Cola')),
+                Expanded(child: _buildBrandDropdown()),
               ],
             ),
             const SizedBox(height: 16),
@@ -286,7 +305,6 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
 
   Widget _buildCategoryDropdown() {
     final categoriesAsync = ref.watch(categoriesStreamProvider);
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -294,32 +312,59 @@ class _AddProductPanelState extends ConsumerState<AddProductPanel> {
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(12)),
           child: categoriesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, st) => Text('Erreur: $e'),
             data: (categories) {
-              if (categories.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text('Aucune catégorie (Créer une d\'abord)', style: TextStyle(color: Colors.red)),
-                );
+              if (categories.isEmpty) return const Text('Aucune catégorie');
+              if (_selectedCategoryId == null && categories.isNotEmpty) {
+                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                   if (mounted) {
+                     setState(() => _selectedCategoryId = categories.first.id);
+                     _loadBrands(categories.first.id);
+                   }
+                 });
               }
-              // Ideally we track a _selectedCategoryId state variable, but for prototype we can default to the first
               return DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
                   isExpanded: true,
-                  value: categories.first.id,
+                  value: _selectedCategoryId,
                   items: categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                   onChanged: (val) {
-                    // setState(() => _selectedCategoryId = val);
+                    if (val != null) {
+                      setState(() => _selectedCategoryId = val);
+                      _loadBrands(val);
+                    }
                   },
                 ),
               );
             },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBrandDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Marque (Optionnelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(12)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              isExpanded: true,
+              hint: const Text('Aucune marque'),
+              value: _selectedBrandId,
+              items: _availableBrands.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
+              onChanged: (val) {
+                setState(() => _selectedBrandId = val);
+              },
+            ),
           ),
         ),
       ],
