@@ -25,11 +25,21 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
   String _selectedMethod = 'ESPÈCES';
   final _tenderedController = TextEditingController();
   int? _selectedCustomerId;
+  
+  // Multi-currency handling
+  String _tenderedCurrency = 'USD'; // Local state for the currency they hand you
 
   @override
   void initState() {
     super.initState();
-    _tenderedController.text = widget.totalAmount.toString();
+    // Default to the base currency
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final baseCurrency = ref.read(settingsProvider).currency;
+      setState(() {
+        _tenderedCurrency = baseCurrency;
+        _tenderedController.text = widget.totalAmount.toString();
+      });
+    });
   }
 
   @override
@@ -38,7 +48,6 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     super.dispose();
   }
 
-  
   Future<void> _processPayment() async {
     final sessionAsync = ref.read(activeSessionProvider);
     final session = sessionAsync.valueOrNull;
@@ -58,22 +67,40 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     final db = ref.read(databaseProvider);
     final cartItems = ref.read(cartProvider);
 
-    // Run in a transaction
+    // Calculate actual base currency tendered amount for records
+    final settings = ref.read(settingsProvider);
+    final tenderedStr = _tenderedController.text.replaceAll(',', '.');
+    double tenderedInput = double.tryParse(tenderedStr) ?? 0.0;
+    
+    double tenderedInBaseCurrency = tenderedInput;
+    if (_tenderedCurrency != settings.currency) {
+      // Conversion needed
+      if (_tenderedCurrency == 'CDF' && settings.currency == 'USD') {
+        tenderedInBaseCurrency = tenderedInput / settings.exchangeRate;
+      } else if (_tenderedCurrency == 'USD' && settings.currency == 'CDF') {
+        tenderedInBaseCurrency = tenderedInput * settings.exchangeRate;
+      }
+    }
+
+    if (_selectedMethod == 'ESPÈCES' && tenderedInBaseCurrency < widget.totalAmount) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Montant insuffisant !')));
+      return;
+    }
+
     final insertedSaleId = await db.transaction(() async {
-      // 1. Create Sale
       final saleId = await db.into(db.sales).insert(
         SalesCompanion.insert(
-          saleNumber: 'FAC-${DateTime.now().millisecondsSinceEpoch}', // Basic generation
+          saleNumber: 'FAC-\${DateTime.now().millisecondsSinceEpoch}',
           date: DateTime.now(),
           subtotal: widget.totalAmount,
           discount: const drift.Value(0.0),
           total: widget.totalAmount,
+          
           paymentMethod: drift.Value(_selectedMethod),
           sessionId: drift.Value(session.id),
         ),
       );
 
-      // 2. Create Sale Items and deduct stock
       for (final item in cartItems) {
         await db.into(db.saleItems).insert(
           SaleItemsCompanion.insert(
@@ -85,7 +112,6 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
           ),
         );
 
-        // Deduct stock
         final product = await (db.select(db.products)..where((p) => p.id.equals(item.productId))).getSingle();
         await (db.update(db.products)..where((p) => p.id.equals(item.productId))).write(
           ProductsCompanion(
@@ -94,7 +120,6 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
         );
       }
 
-      // 3. Update customer credit if needed
       if (_selectedMethod == 'CRÉDIT' && _selectedCustomerId != null) {
         final customer = await (db.select(db.customers)..where((c) => c.id.equals(_selectedCustomerId!))).getSingle();
         await (db.update(db.customers)..where((c) => c.id.equals(_selectedCustomerId!))).write(
@@ -106,34 +131,36 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
       return saleId;
     });
 
-    // Generate Print Preview BEFORE popping
     final sale = await (db.select(db.sales)..where((s) => s.id.equals(insertedSaleId))).getSingle();
     final printedItems = await (db.select(db.saleItems)..where((si) => si.saleId.equals(insertedSaleId))).get();
     final allProducts = await (db.select(db.products)).get();
-    final settings = ref.read(settingsProvider);
 
-    // 4. Clear cart
     ref.read(cartProvider.notifier).clearCart();
     ref.invalidate(dashboardStatsProvider);
 
     if (mounted) {
-      // Show printing preview Dialog
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Paiement réussi ! Impression...', style: TextStyle(color: Colors.white)), backgroundColor: AppTheme.successColor),
       );
       
-      // Print will show the native preview UI
       await PrinterService.printReceipt(sale, printedItems, allProducts, settings.currency, settings.storeName, settings.receiptFooter);
       
       if (mounted) Navigator.of(context).pop(true);
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final currency = ref.watch(settingsProvider).currency;
-        return Scaffold(
+    final settings = ref.watch(settingsProvider);
+    final baseCurrency = settings.currency;
+    final rate = settings.exchangeRate;
+    
+    // Calculate display totals in both currencies
+    final totalBase = widget.totalAmount;
+    final totalAlt = baseCurrency == 'USD' ? totalBase * rate : totalBase / rate;
+    final altCurrency = baseCurrency == 'USD' ? 'CDF' : 'USD';
+
+    return Scaffold(
       appBar: AppBar(
         title: const Text('Paiement'),
         leading: IconButton(
@@ -156,7 +183,13 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total à payer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                  Text('${widget.totalAmount} $currency', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('\${totalBase.toStringAsFixed(2)} \$baseCurrency', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                      Text('\${totalAlt.toStringAsFixed(0)} \$altCurrency', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.primaryColor.withOpacity(0.6))),
+                    ],
+                  )
                 ],
               ),
             ),
@@ -176,13 +209,12 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
             ),
             const SizedBox(height: 32),
             
-
             if (_selectedMethod == 'CRÉDIT') ...[
               const Text('Client', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               ref.watch(customersStreamProvider).when(
                 loading: () => const CircularProgressIndicator(),
-                error: (e, st) => Text('Erreur: $e'),
+                error: (e, st) => Text('Erreur: \$e'),
                 data: (customers) {
                   return DropdownButtonFormField<int>(
                     value: _selectedCustomerId,
@@ -196,20 +228,34 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
             ],
 
             if (_selectedMethod == 'ESPÈCES') ...[
-              Text('Montant reçu ($currency)', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Montant reçu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Row(
+                    children: [
+                      _buildCurrencyToggle('USD'),
+                      const SizedBox(width: 8),
+                      _buildCurrencyToggle('CDF'),
+                    ],
+                  )
+                ],
+              ),
+              const SizedBox(height: 12),
               TextField(
                 controller: _tenderedController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.payments),
+                  suffixText: _tenderedCurrency,
+                  suffixStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 style: const TextStyle(fontSize: 24),
-                onChanged: (val) => setState(() {}), // To trigger change in change due
+                onChanged: (val) => setState(() {}),
               ),
               const SizedBox(height: 16),
-              _buildChangeDue(),
+              _buildChangeDue(baseCurrency, altCurrency, rate),
             ],
             
             const Spacer(),
@@ -222,6 +268,32 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
               ),
             )
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrencyToggle(String curr) {
+    final isSelected = _tenderedCurrency == curr;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _tenderedCurrency = curr;
+          _tenderedController.clear(); // Reset to avoid confusing conversions
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          curr,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -257,29 +329,56 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     );
   }
 
-  Widget _buildChangeDue() {
-    final currency = ref.watch(settingsProvider).currency;
-    final tendered = double.tryParse(_tenderedController.text) ?? 0.0;
-    final change = tendered - widget.totalAmount;
+  Widget _buildChangeDue(String baseCurrency, String altCurrency, double rate) {
+    final tenderedStr = _tenderedController.text.replaceAll(',', '.');
+    final tenderedInput = double.tryParse(tenderedStr) ?? 0.0;
     
+    double tenderedInBaseCurrency = tenderedInput;
+    if (_tenderedCurrency != baseCurrency) {
+      if (_tenderedCurrency == 'CDF' && baseCurrency == 'USD') {
+        tenderedInBaseCurrency = tenderedInput / rate;
+      } else if (_tenderedCurrency == 'USD' && baseCurrency == 'CDF') {
+        tenderedInBaseCurrency = tenderedInput * rate;
+      }
+    }
+
+    final changeInBase = tenderedInBaseCurrency - widget.totalAmount;
+    final changeInAlt = baseCurrency == 'USD' ? changeInBase * rate : changeInBase / rate;
+    
+    final isEnough = changeInBase >= 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: change >= 0 ? AppTheme.successColor.withOpacity(0.1) : AppTheme.dangerColor.withOpacity(0.1),
+        color: isEnough ? AppTheme.successColor.withOpacity(0.1) : AppTheme.dangerColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text('Monnaie à rendre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          Text(
-            change >= 0 ? '$change $currency' : 'Montant insuffisant',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: change >= 0 ? AppTheme.successColor : AppTheme.dangerColor,
-            ),
-          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                isEnough ? '\${changeInBase.toStringAsFixed(2)} \$baseCurrency' : 'Montant insuffisant',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isEnough ? AppTheme.successColor : AppTheme.dangerColor,
+                ),
+              ),
+              if (isEnough)
+                Text(
+                  '\${changeInAlt.toStringAsFixed(0)} \$altCurrency',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.successColor.withOpacity(0.8),
+                  ),
+                ),
+            ],
+          )
         ],
       ),
     );

@@ -14,6 +14,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _storeNameController;
   late TextEditingController _currencyController;
+  late TextEditingController _exchangeRateController;
   late TextEditingController _footerController;
 
   @override
@@ -22,6 +23,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settings = ref.read(settingsProvider);
     _storeNameController = TextEditingController(text: settings.storeName);
     _currencyController = TextEditingController(text: settings.currency);
+    _exchangeRateController = TextEditingController(text: settings.exchangeRate.toString());
     _footerController = TextEditingController(text: settings.receiptFooter);
   }
 
@@ -29,6 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _storeNameController.dispose();
     _currencyController.dispose();
+    _exchangeRateController.dispose();
     _footerController.dispose();
     super.dispose();
   }
@@ -38,6 +41,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       AppSettings(
         storeName: _storeNameController.text,
         currency: _currencyController.text,
+        exchangeRate: double.tryParse(_exchangeRateController.text) ?? 2800.0,
         receiptFooter: _footerController.text,
       ),
     );
@@ -68,7 +72,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       _buildTextField('Nom de la boutique', _storeNameController),
                       const SizedBox(height: 24),
-                      _buildTextField('Devise principale (ex: CDF, USD)', _currencyController),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField('Devise principale (ex: USD)', _currencyController)),
+                          const SizedBox(width: 24),
+                          Expanded(child: _buildTextField('Taux de change (ex: 2800 FC)', _exchangeRateController)),
+                        ],
+                      ),
                       const SizedBox(height: 24),
                       _buildTextField('Message de pied de page (Reçu)', _footerController, maxLines: 2),
                       const Spacer(),

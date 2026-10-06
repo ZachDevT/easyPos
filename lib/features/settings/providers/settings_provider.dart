@@ -4,20 +4,28 @@ import '../../../core/providers/admin_provider.dart';
 
 class AppSettings {
   final String storeName;
-  final String currency;
+  final String currency; // Base Currency (e.g. USD)
   final String receiptFooter;
+  final double exchangeRate; // E.g. 2800 (1 USD = 2800 CDF)
 
   AppSettings({
     required this.storeName,
     required this.currency,
     required this.receiptFooter,
+    required this.exchangeRate,
   });
 
-  AppSettings copyWith({String? storeName, String? currency, String? receiptFooter}) {
+  AppSettings copyWith({
+    String? storeName, 
+    String? currency, 
+    String? receiptFooter,
+    double? exchangeRate,
+  }) {
     return AppSettings(
       storeName: storeName ?? this.storeName,
       currency: currency ?? this.currency,
       receiptFooter: receiptFooter ?? this.receiptFooter,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
     );
   }
 }
@@ -27,15 +35,17 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   SettingsNotifier(this._prefs)
       : super(AppSettings(
-          storeName: _prefs.getString('store_name') ?? 'EasyPOS',
-          currency: _prefs.getString('currency') ?? 'CDF',
+          storeName: _prefs.getString('store_name') ?? 'Yellow Pos',
+          currency: _prefs.getString('currency') ?? 'USD',
           receiptFooter: _prefs.getString('receipt_footer') ?? 'Merci pour votre visite!',
+          exchangeRate: _prefs.getDouble('exchange_rate') ?? 2800.0,
         ));
 
   Future<void> updateSettings(AppSettings newSettings) async {
     await _prefs.setString('store_name', newSettings.storeName);
     await _prefs.setString('currency', newSettings.currency);
     await _prefs.setString('receipt_footer', newSettings.receiptFooter);
+    await _prefs.setDouble('exchange_rate', newSettings.exchangeRate);
     state = newSettings;
   }
 }
