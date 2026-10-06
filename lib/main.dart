@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/supabase/supabase_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -9,6 +10,7 @@ import 'dart:io';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
+  await SupabaseConfig.initialize();
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
 
