@@ -8,12 +8,14 @@ class DashboardStats {
   final int transactionCount;
   final double estimatedProfit;
   final double stockCount;
+  final List<Product> lowStockItems;
 
   DashboardStats({
     required this.totalSales,
     required this.transactionCount,
     required this.estimatedProfit,
     required this.stockCount,
+    required this.lowStockItems,
   });
 }
 
@@ -39,6 +41,7 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
   final allProducts = await stockQuery.get();
   
   final stockCount = allProducts.fold<double>(0, (sum, product) => sum + product.stockQuantity);
+  final lowStockItems = allProducts.where((p) => p.stockQuantity <= p.minimumStock).toList();
 
   final estimatedProfit = totalSales * 0.3;
 
@@ -47,6 +50,7 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
     transactionCount: transactionCount,
     estimatedProfit: estimatedProfit,
     stockCount: stockCount,
+    lowStockItems: lowStockItems,
   );
 });
 

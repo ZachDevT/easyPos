@@ -163,7 +163,9 @@ class ProductsScreen extends ConsumerWidget {
 
         return ListView(
           children: [
-            DataTable(
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
               headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
               columns: const [
                 DataColumn(label: Text('Produit')),
@@ -175,96 +177,86 @@ class ProductsScreen extends ConsumerWidget {
                 DataColumn(label: Text('Actions')),
               ],
               rows: products.map((product) {
-                final inStock = product.stockQuantity > product.minimumStock;
-                return DataRow(
-                  cells: [
-                    DataCell(Row(
-                      children: [
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: product.imagePath != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        File(product.imagePath!), // Note: Use dart:io File, handled via import.
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Icon(Icons.image, size: 20, color: Colors.grey),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      DataCell(Text(product.sku ?? '-')),
+                      DataCell(Text(product.barcode ?? '-')),
+                      DataCell(Text('Catégorie ${product.categoryId}')),
+                      DataCell(Text('${product.purchasePrice} $currency')),
+                      DataCell(Text('${product.sellingPrice} $currency', style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold))),
+                      DataCell(
                         Container(
-                          width: 40,
-                          height: 40,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
+                            color: product.stockQuantity <= product.minimumStock 
+                                ? AppTheme.dangerColor.withOpacity(0.1)
+                                : AppTheme.successColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          child: product.imagePath != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(File(product.imagePath!), fit: BoxFit.cover),
-                                )
-                              : const Icon(Icons.image, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    )),
-                    DataCell(Text(product.sku ?? '-')),
-                    DataCell(Text(product.categoryId?.toString() ?? '-')),
-                    DataCell(Text('${product.sellingPrice} $currency')),
-                    DataCell(Text('${product.stockQuantity} ${product.unit}')),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: inStock ? AppTheme.successColor.withOpacity(0.1) : AppTheme.dangerColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          inStock ? 'En stock' : 'Stock faible',
-                          style: TextStyle(
-                            color: inStock ? AppTheme.successColor : AppTheme.dangerColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                          child: Text(
+                            '${product.stockQuantity} ${product.unit}',
+                            style: TextStyle(
+                              color: product.stockQuantity <= product.minimumStock 
+                                  ? AppTheme.dangerColor
+                                  : AppTheme.successColor,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 20, color: Colors.blue), 
-                            onPressed: () async {
-                              final hasPin = ref.read(adminProvider.notifier).hasPin;
-                              if (!hasPin) return; // Normally ask for setup, but keep brief
-                              final authed = await showRightSidePanel<bool>(
-                                context: context,
-                                builder: (context) => const AdminAuthPanel(title: 'Modifier un produit'),
-                              );
-                              if (authed == true && context.mounted) {
+                      DataCell(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                              onPressed: () {
                                 showRightSidePanel(
                                   context: context,
                                   builder: (context) => AddProductPanel(product: product),
                                 );
-                              }
-                            }
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, size: 20, color: Colors.red), 
-                            onPressed: () async {
-                              final hasPin = ref.read(adminProvider.notifier).hasPin;
-                              if (!hasPin) return;
-                              final authed = await showRightSidePanel<bool>(
-                                context: context,
-                                builder: (context) => const AdminAuthPanel(title: 'Supprimer un produit'),
-                              );
-                              if (authed == true && context.mounted) {
-                                // Delete from DB
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                              onPressed: () async {
                                 final db = ref.read(databaseProvider);
-                                await (db.delete(db.products)..where((p) => p.id.equals(product.id))).go();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${product.name} supprimé'), backgroundColor: AppTheme.dangerColor),
-                                );
-                              }
-                            }
-                          ),
-                        ],
+                                await (db.delete(db.products)..where((tbl) => tbl.id.equals(product.id))).go();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              }).toList(),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ],
         );

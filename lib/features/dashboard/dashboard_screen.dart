@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../core/widgets/stat_card.dart';
 import '../../core/theme/app_theme.dart';
 import 'providers/dashboard_provider.dart';
 import '../../features/settings/providers/settings_provider.dart';
+import '../../features/reports/providers/reports_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -39,7 +41,7 @@ class DashboardScreen extends ConsumerWidget {
               data: (stats) {
                 return LayoutBuilder(
                   builder: (context, constraints) {
-                    final crossAxisCount = constraints.maxWidth > 1000 ? 4 : constraints.maxWidth > 600 ? 2 : 1;
+                    final crossAxisCount = constraints.maxWidth > 1000 ? 3 : constraints.maxWidth > 600 ? 2 : 1;
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
@@ -59,12 +61,6 @@ class DashboardScreen extends ConsumerWidget {
                           value: '${stats.transactionCount}',
                           icon: Icons.receipt_long_outlined,
                           color: AppTheme.successColor,
-                        ),
-                        StatCard(
-                          title: 'Bénéfice estimé',
-                          value: '${stats.estimatedProfit} $currency',
-                          icon: Icons.trending_up,
-                          color: AppTheme.warningColor,
                         ),
                         StatCard(
                           title: 'Produits en stock',
@@ -98,11 +94,39 @@ class DashboardScreen extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 16),
-                          Container(
-                            height: 200,
-                            color: Colors.grey[100],
-                            alignment: Alignment.center,
-                            child: const Text('Graphique des ventes (À implémenter)'),
+                          ref.watch(reportsProvider).when(
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (e, st) => const Center(child: Text('Erreur de chargement')),
+                            data: (data) {
+                              if (data.dailyRevenue.isEmpty) return const Center(child: Text('Aucune donnée.'));
+                              List<FlSpot> spots = [];
+                              for (int i = 0; i < data.dailyRevenue.length; i++) {
+                                spots.add(FlSpot(i.toDouble(), data.dailyRevenue[i].revenue));
+                              }
+                              return Container(
+                                height: 200,
+                                padding: const EdgeInsets.only(top: 16),
+                                child: LineChart(
+                                  LineChartData(
+                                    gridData: const FlGridData(show: false),
+                                    titlesData: const FlTitlesData(
+                                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    ),
+                                    borderData: FlBorderData(show: false),
+                                    lineBarsData: [
+                                      LineChartBarData(
+                                        spots: spots,
+                                        isCurved: true,
+                                        color: AppTheme.primaryColor,
+                                        barWidth: 3,
+                                        belowBarData: BarAreaData(show: true, color: AppTheme.primaryColor.withOpacity(0.1)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -125,9 +149,18 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _buildLowStockItem('Paracétamol', '4 unités'),
-                          _buildLowStockItem('Savon Lux', '6 unités'),
-                          _buildLowStockItem('T-shirt XL', '2 unités'),
+                          statsAsync.when(
+                            loading: () => const CircularProgressIndicator(),
+                            error: (_, __) => const SizedBox(),
+                            data: (stats) {
+                              if (stats.lowStockItems.isEmpty) {
+                                return const Text('Aucun stock faible.', style: TextStyle(color: Colors.green));
+                              }
+                              return Column(
+                                children: stats.lowStockItems.take(5).map((p) => _buildLowStockItem(p.name, '${p.stockQuantity} ${p.unit}')).toList(),
+                              );
+                            }
+                          ),
                           const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,

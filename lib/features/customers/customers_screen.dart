@@ -94,43 +94,46 @@ class CustomersScreen extends ConsumerWidget {
 
         return ListView(
           children: [
-            DataTable(
-              headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-              columns: const [
-                DataColumn(label: Text('Nom')),
-                DataColumn(label: Text('Téléphone')),
-                DataColumn(label: Text('Email')),
-                DataColumn(label: Text('Crédit Dû')),
-                DataColumn(label: Text('Actions')),
-              ],
-              rows: customers.map((c) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                    DataCell(Text(c.phone ?? '-')),
-                    DataCell(Text(c.email ?? '-')),
-                    DataCell(Text('${c.totalCredit} $currency', style: TextStyle(color: c.totalCredit > 0 ? AppTheme.dangerColor : AppTheme.successColor, fontWeight: FontWeight.bold))),
-                    DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
-                            onPressed: () { showRightSidePanel(context: context, builder: (context) => AddCustomerPanel(customer: c)); },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                            onPressed: () async {
-                              final db = ref.read(databaseProvider);
-                              await (db.delete(db.customers)..where((tbl) => tbl.id.equals(c.id))).go();
-                            },
-                          ),
-                        ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                columns: const [
+                  DataColumn(label: Text('Nom')),
+                  DataColumn(label: Text('Téléphone')),
+                  DataColumn(label: Text('Email')),
+                  DataColumn(label: Text('Crédit Dû')),
+                  DataColumn(label: Text('Actions')),
+                ],
+                rows: customers.map((c) {
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataCell(Text(c.phone ?? '-')),
+                      DataCell(Text(c.email ?? '-')),
+                      DataCell(Text('${c.totalCredit} $currency', style: TextStyle(color: c.totalCredit > 0 ? AppTheme.dangerColor : AppTheme.successColor, fontWeight: FontWeight.bold))),
+                      DataCell(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                              onPressed: () { showRightSidePanel(context: context, builder: (context) => AddCustomerPanel(customer: c)); },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                              onPressed: () async {
+                                final db = ref.read(databaseProvider);
+                                await (db.delete(db.customers)..where((tbl) => tbl.id.equals(c.id))).go();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              }).toList(),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ],
         );
