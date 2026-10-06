@@ -10,6 +10,7 @@ import '../providers/cart_provider.dart';
 import '../providers/session_provider.dart';
 import '../../customers/providers/customer_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../core/utils/printer_service.dart';
 
 class PaymentPanel extends ConsumerStatefulWidget {
   final double totalAmount;
@@ -37,6 +38,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     super.dispose();
   }
 
+  
   Future<void> _processPayment() async {
     final sessionAsync = ref.read(activeSessionProvider);
     final session = sessionAsync.valueOrNull;
@@ -48,7 +50,6 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
       return;
     }
 
-    
     if (_selectedMethod == 'CRÉDIT' && _selectedCustomerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez sélectionner un client pour le crédit.')));
       return;
@@ -58,7 +59,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     final cartItems = ref.read(cartProvider);
 
     // Run in a transaction
-    await db.transaction(() async {
+    final insertedSaleId = await db.transaction(() async {
       // 1. Create Sale
       final saleId = await db.into(db.sales).insert(
         SalesCompanion.insert(
@@ -85,7 +86,6 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
         );
 
         // Deduct stock
-        // Note: In Drift, you can do an update statement
         final product = await (db.select(db.products)..where((p) => p.id.equals(item.productId))).getSingle();
         await (db.update(db.products)..where((p) => p.id.equals(item.productId))).write(
           ProductsCompanion(
@@ -103,21 +103,32 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
           ),
         );
       }
+      return saleId;
     });
+
+    // Generate Print Preview BEFORE popping
+    final sale = await (db.select(db.sales)..where((s) => s.id.equals(insertedSaleId))).getSingle();
+    final printedItems = await (db.select(db.saleItems)..where((si) => si.saleId.equals(insertedSaleId))).get();
+    final allProducts = await (db.select(db.products)).get();
+    final settings = ref.read(settingsProvider);
 
     // 4. Clear cart
     ref.read(cartProvider.notifier).clearCart();
-    
-    // Invalidate dashboard stats so they update
     ref.invalidate(dashboardStatsProvider);
 
     if (mounted) {
+      // Show printing preview Dialog
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Paiement réussi !', style: TextStyle(color: Colors.white)), backgroundColor: AppTheme.successColor),
+        const SnackBar(content: Text('Paiement réussi ! Impression...', style: TextStyle(color: Colors.white)), backgroundColor: AppTheme.successColor),
       );
-      Navigator.of(context).pop(true);
+      
+      // Print will show the native preview UI
+      await PrinterService.printReceipt(sale, printedItems, allProducts, settings.currency, settings.storeName, settings.receiptFooter);
+      
+      if (mounted) Navigator.of(context).pop(true);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
