@@ -28,6 +28,12 @@ jobs:
     - name: Build Windows Executable
       run: flutter build windows
 
+    - name: Bundle C++ Redistributable DLLs
+      run: |
+        Copy-Item "C:\Windows\System32\msvcp140.dll" -Destination "build\windows\x64\runner\Release\"
+        Copy-Item "C:\Windows\System32\vcruntime140.dll" -Destination "build\windows\x64\runner\Release\"
+        Copy-Item "C:\Windows\System32\vcruntime140_1.dll" -Destination "build\windows\x64\runner\Release\"
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
