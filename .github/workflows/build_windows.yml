@@ -35,9 +35,9 @@ jobs:
         Copy-Item "C:\Windows\System32\vcruntime140_1.dll" -Destination "build\windows\x64\runner\Release\"
 
     - name: Compile Installer
-      uses: MinhasKamal/setup-inno-setup@v1
-      with:
-        path: windows/runner/installer.iss
+      run: |
+        choco install innosetup
+        & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" windows/runner/installer.iss
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
