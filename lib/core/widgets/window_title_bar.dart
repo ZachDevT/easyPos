@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
+import '../providers/zoom_provider.dart';
 
 /// A compact, custom window title bar with drag area + traffic-light controls.
 /// Matches the Apple-inspired design of the rest of Yellow Pos.
-class WindowTitleBar extends StatefulWidget implements PreferredSizeWidget {
+class WindowTitleBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final String title;
   const WindowTitleBar({super.key, this.title = 'Yellow Pos'});
 
@@ -12,10 +14,10 @@ class WindowTitleBar extends StatefulWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(38);
 
   @override
-  State<WindowTitleBar> createState() => _WindowTitleBarState();
+  ConsumerState<WindowTitleBar> createState() => _WindowTitleBarState();
 }
 
-class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
+class _WindowTitleBarState extends ConsumerState<WindowTitleBar> with WindowListener {
   bool _isMaximized = false;
 
   @override
@@ -54,7 +56,7 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
 
     return Container(
       height: 38,
-      color: const Color(0xFF1C1C1E),
+      color: const Color(0xFF111827),
       child: Row(
         children: [
           // Drag area — takes all space except the buttons
@@ -70,7 +72,7 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(5),
                         gradient: const LinearGradient(
-                          colors: [Color(0xFFFACC15), Color(0xFFF59E0B)],
+                          colors: [Color(0xFFE91E63), Color(0xFFD946EF)],
                           begin: Alignment.topLeft, end: Alignment.bottomRight,
                         ),
                       ),
@@ -94,6 +96,24 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
             ),
           ),
 
+          // Zoom controls
+          _WinBtn(
+            tooltip: 'Zoom Arrière',
+            icon: Icons.zoom_out,
+            onPressed: () => ref.read(zoomProvider.notifier).zoomOut(),
+          ),
+          _WinBtn(
+            tooltip: 'Réinitialiser Zoom',
+            icon: Icons.center_focus_strong,
+            onPressed: () => ref.read(zoomProvider.notifier).reset(),
+          ),
+          _WinBtn(
+            tooltip: 'Zoom Avant',
+            icon: Icons.zoom_in,
+            onPressed: () => ref.read(zoomProvider.notifier).zoomIn(),
+          ),
+          const SizedBox(width: 16),
+          
           // Window controls
           _WinBtn(
             tooltip: 'Réduire',
@@ -139,7 +159,7 @@ class _WinBtnState extends State<_WinBtn> {
 
   @override
   Widget build(BuildContext context) {
-    Color hoverBg = widget.isClose ? const Color(0xFFE81123) : const Color(0xFF3A3A3C);
+    Color hoverBg = widget.isClose ? const Color(0xFFE81123) : const Color(0xFF374151);
 
     return Tooltip(
       message: widget.tooltip,
@@ -165,3 +185,4 @@ class _WinBtnState extends State<_WinBtn> {
     );
   }
 }
+

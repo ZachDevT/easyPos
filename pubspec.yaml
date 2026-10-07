@@ -54,6 +54,7 @@ dependencies:
   fl_chart: ^1.2.0
   supabase_flutter: ^2.18.0
   connectivity_plus: ^7.3.2
+  hugeicons: ^1.2.0
 
 dev_dependencies:
   flutter_test:

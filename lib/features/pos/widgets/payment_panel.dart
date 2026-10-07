@@ -90,7 +90,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     final insertedSaleId = await db.transaction(() async {
       final saleId = await db.into(db.sales).insert(
         SalesCompanion.insert(
-          saleNumber: 'FAC-\${DateTime.now().millisecondsSinceEpoch}',
+          saleNumber: "INV-\${DateTime.now().year}\${DateTime.now().month.toString().padLeft(2,'0')}\${DateTime.now().day.toString().padLeft(2,'0')}-\${DateTime.now().hour.toString().padLeft(2,'0')}\${DateTime.now().minute.toString().padLeft(2,'0')}\${DateTime.now().second.toString().padLeft(2,'0')}",
           date: DateTime.now(),
           subtotal: widget.totalAmount,
           discount: const drift.Value(0.0),

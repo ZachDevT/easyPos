@@ -58,11 +58,14 @@ class SyncService {
           'boutique_id': boutiqueId,
           'name': product.name,
           'barcode': product.barcode,
-          'price': product.sellingPrice,
-          'cost_price': product.purchasePrice,
+          'sku': product.sku,
+          'category_id': product.categoryId,
+          'brand_id': product.brandId,
+          'purchase_price': product.purchasePrice,
+          'selling_price': product.sellingPrice,
           'stock_quantity': product.stockQuantity,
           'minimum_stock': product.minimumStock,
-          'category_id': product.categoryId,
+          'unit': product.unit,
         });
       }
 
@@ -72,15 +75,19 @@ class SyncService {
         await supabase.from('sales').upsert({
           'id': sale.id,
           'boutique_id': boutiqueId,
-          'total_amount': sale.total,
-          'payment_method': sale.paymentMethod,
+          'sale_number': sale.saleNumber,
           'date': sale.date.toIso8601String(),
+          'subtotal': sale.subtotal,
+          'discount': sale.discount,
+          'total': sale.total,
+          'payment_method': sale.paymentMethod,
+          'customer_id': sale.customerId,
         });
       }
 
       print("Sync Complete!");
     } catch (e) {
-      print("Sync Error: \$e");
+      print("Sync Error: $e");
     } finally {
       _isSyncing = false;
     }
