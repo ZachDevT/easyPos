@@ -76,7 +76,7 @@ class _AuthScreenState extends State<AuthScreen> {
               color: const Color(0xFF111111),
               child: Stack(
                 children: [
-                  // Yellow gradient blob
+                  // Pink gradient blob
                   Positioned(
                     top: -80, left: -80,
                     child: Container(
@@ -84,7 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(colors: [
-                          const Color(0xFFFACC15).withOpacity(0.3),
+                          const Color(0xFFE91E63).withOpacity(0.3),
                           Colors.transparent,
                         ]),
                       ),
@@ -97,7 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(colors: [
-                          const Color(0xFFFACC15).withOpacity(0.15),
+                          const Color(0xFFE91E63).withOpacity(0.15),
                           Colors.transparent,
                         ]),
                       ),
@@ -110,32 +110,14 @@ class _AuthScreenState extends State<AuthScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Logo / Brand
-                        Row(
-                          children: [
-                            Container(
-                              width: 36, height: 36,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFFACC15), Color(0xFFF59E0B)],
-                                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: const Center(
-                                child: Text('Y', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Yellow Pos',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
+                        const Text(
+                          'YellowPos.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.0,
+                          ),
                         ),
                         const Spacer(),
                         const Text(
@@ -330,7 +312,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFFACC15), width: 2),
+        borderSide: const BorderSide(color: Color(0xFFE91E63), width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
