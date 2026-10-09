@@ -178,7 +178,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                       ]);
                     }
                     
-                    String csv = const ListToCsvConverter().convert(rows);
+                    String csv = ListToCsvConverter().convert(rows);
                     try {
                       final dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
                       final file = File('${dir.path}/Ventes_${DateTime.now().millisecondsSinceEpoch}.csv');
