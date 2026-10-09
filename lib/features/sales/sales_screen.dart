@@ -178,11 +178,11 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                       ]);
                     }
                     
-                    String csv = ListToCsvConverter().convert(rows);
+                    String csvData = csv.encode(rows);
                     try {
                       final dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
                       final file = File('${dir.path}/Ventes_${DateTime.now().millisecondsSinceEpoch}.csv');
-                      await file.writeAsString(csv);
+                      await file.writeAsString(csvData);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exporté vers ${file.path}'), duration: const Duration(seconds: 4)));
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur export: $e')));
