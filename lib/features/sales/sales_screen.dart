@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:csv/csv.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -156,7 +160,34 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                     side: const BorderSide(color: Color(0xFFE5E7EB)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: () {}, // TODO: CSV Export logic
+                  onPressed: () async {
+                    final salesData = ref.read(salesHistoryProvider).valueOrNull;
+                    if (salesData == null || salesData.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucune donnée à exporter')));
+                      return;
+                    }
+                    
+                    List<List<dynamic>> rows = [];
+                    rows.add(["Date", "Facture", "Méthode", "Total"]);
+                    for (var s in salesData) {
+                      rows.add([
+                        s.date.toIso8601String(),
+                        s.saleNumber,
+                        s.paymentMethod,
+                        s.total
+                      ]);
+                    }
+                    
+                    String csv = const ListToCsvConverter().convert(rows);
+                    try {
+                      final dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+                      final file = File('${dir.path}/Ventes_${DateTime.now().millisecondsSinceEpoch}.csv');
+                      await file.writeAsString(csv);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exporté vers ${file.path}'), duration: const Duration(seconds: 4)));
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur export: $e')));
+                    }
+                  },
                 ),
               ],
             ),

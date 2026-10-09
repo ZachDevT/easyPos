@@ -9,7 +9,7 @@ import {
 import {
   LayoutDashboard, Package, Receipt, Settings, LogOut,
   TrendingUp, AlertTriangle, ShoppingBag, RefreshCw, Bell,
-  ArrowUpRight, ArrowDownRight, Lock, ChevronRight, Zap, Users
+  ArrowUpRight, ArrowDownRight, Lock, ChevronRight, Zap, Users, Wallet
 } from 'lucide-react';
 
 const COLORS = ['#FACC15', '#1C1C1E', '#6B7280', '#D97706'];
@@ -123,6 +123,8 @@ export default function Dashboard() {
           <SideNavItem icon={<LayoutDashboard size={18}/>} label="Vue d'ensemble" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} badge={lowStock.length > 0 ? lowStock.length.toString() : undefined} />
           <SideNavItem icon={<Package size={18}/>} label="Inventaire" active={activeTab === 'products'} onClick={() => setActiveTab('products')} />
           <SideNavItem icon={<Receipt size={18}/>} label="Ventes" active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} badge={todaySales.length > 0 ? todaySales.length.toString() : undefined} />
+          <SideNavItem icon={<Wallet size={18}/>} label="Dépenses" active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />
+
           
           <div className="pt-6 pb-2">
             <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest px-4 mb-3">Configuration</p>
@@ -154,7 +156,7 @@ export default function Dashboard() {
         <header className="sticky top-0 z-20 bg-[#F2F2F7]/80 backdrop-blur-xl border-b border-gray-200/50 flex items-center justify-between px-10 h-16">
           <div>
             <h2 className="font-semibold text-gray-900 capitalize">
-              {activeTab === 'overview' ? "Vue d'ensemble" : activeTab === 'products' ? 'Inventaire' : activeTab === 'sales' ? 'Ventes' : 'Paramètres'}
+              {activeTab === 'overview' ? "Vue d'ensemble" : activeTab === 'products' ? 'Inventaire' : activeTab === 'sales' ? 'Ventes' : activeTab === 'expenses' ? 'Dépenses' : 'Paramètres'}
             </h2>
             <p className="text-xs text-gray-500">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
@@ -444,6 +446,19 @@ export default function Dashboard() {
             )}
 
             {/* ── SETTINGS ── */}
+            {/* ── EXPENSES ── */}
+            {activeTab === 'expenses' && (
+              <motion.div key="expenses" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+                <h1 className="text-2xl font-bold tracking-tight mb-8">Dépenses</h1>
+                <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
+                  <Wallet size={48} className="mx-auto text-gray-300 mb-4" />
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Gestion des dépenses</h3>
+                  <p className="text-gray-500 mb-6">Cette fonctionnalité sera bientôt disponible dans une prochaine mise à jour.</p>
+                </div>
+              </motion.div>
+            )}
+
+
             {activeTab === 'settings' && (
               <motion.div key="settings" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
                 <h1 className="text-2xl font-bold tracking-tight mb-8">Paramètres</h1>
@@ -452,7 +467,7 @@ export default function Dashboard() {
                   {/* Store Info */}
                   <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 bg-yellow-50 rounded-2xl flex items-center justify-center"><Users size={18} className="text-yellow-600"/></div>
+                      <div className="w-10 h-10 bg-yellow-50 rounded-2xl flex items-center justify-center"><Users, Wallet size={18} className="text-yellow-600"/></div>
                       <h2 className="font-bold text-lg">Informations Boutique</h2>
                     </div>
                     <div className="space-y-5">

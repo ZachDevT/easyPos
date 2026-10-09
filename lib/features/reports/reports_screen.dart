@@ -1,3 +1,8 @@
+import 'dart:typed_data';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -30,7 +35,35 @@ class ReportsScreen extends ConsumerWidget {
                 SecondaryButton(
                   text: 'Imprimer Rapport',
                   icon: Icons.print,
-                  onPressed: () {},
+                  onPressed: () async {
+                    final data = ref.read(reportsProvider).valueOrNull;
+                    if (data == null) return;
+                    
+                    final doc = pw.Document();
+                    doc.addPage(
+                      pw.Page(
+                        build: (pw.Context context) {
+                          return pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Rapport - ${DateTime.now()}', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                              pw.SizedBox(height: 20),
+                              pw.Text('Meilleures Ventes:', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                              ...data.topProducts.map((p) => pw.Text('${p.name}: ${p.totalSold} vendus')),
+                              pw.SizedBox(height: 20),
+                              pw.Text('Paiements:', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                              ...data.paymentStats.map((p) => pw.Text('${p.method}: ${p.total}')),
+                            ],
+                          );
+                        },
+                      ),
+                    );
+                    
+                    await Printing.layoutPdf(
+                      onLayout: (PdfPageFormat format) async => doc.save(),
+                      name: 'Rapport_${DateTime.now().millisecondsSinceEpoch}',
+                    );
+                  },
                 ),
               ],
             ),

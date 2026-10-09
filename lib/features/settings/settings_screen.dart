@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart' as shared_preferences;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -88,6 +90,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           text: 'Enregistrer les modifications',
                           icon: Icons.save,
                           onPressed: _saveSettings,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.delete_forever, color: Colors.red),
+                          label: const Text('Effacer toutes les données locales (Réinitialiser)', style: TextStyle(color: Colors.red)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Confirmation'),
+                                content: const Text('Voulez-vous vraiment effacer toutes les données locales ? Cela vous déconnectera et vous devrez vous reconnecter.'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Effacer', style: TextStyle(color: Colors.red))),
+                                ],
+                              )
+                            );
+                            if (confirm == true) {
+                              final prefs = await shared_preferences.SharedPreferences.getInstance();
+                              await prefs.clear();
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Données locales effacées. Veuillez redémarrer l\'application.')));
+                            }
+                          },
                         ),
                       ),
                     ],

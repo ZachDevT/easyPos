@@ -11,6 +11,9 @@ import 'widgets/opening_balance_dialog.dart';
 import 'widgets/payment_panel.dart';
 import '../../features/settings/providers/settings_provider.dart';
 
+final posSearchQueryProvider = StateProvider<String>((ref) => '');
+
+
 class PosScreen extends ConsumerWidget {
   const PosScreen({super.key});
 
@@ -79,7 +82,7 @@ class PosScreen extends ConsumerWidget {
             flex: 6,
             child: Column(
               children: [
-                _buildSearchBar(context),
+                _buildSearchBar(context, ref),
                 Expanded(
                   child: _buildProductGrid(context, ref),
                 ),
@@ -108,11 +111,12 @@ class PosScreen extends ConsumerWidget {
     
   }
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildSearchBar(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       color: AppTheme.backgroundColor,
       child: TextField(
+        onChanged: (value) => ref.read(posSearchQueryProvider.notifier).state = value,
         decoration: InputDecoration(
           hintText: '🔎 Rechercher produit ou scanner un code-barres',
           filled: true,
@@ -130,14 +134,22 @@ class PosScreen extends ConsumerWidget {
   Widget _buildProductGrid(BuildContext context, WidgetRef ref) {
     final currency = ref.watch(settingsProvider).currency;
     final productsAsync = ref.watch(productsStreamProvider);
+    final searchQuery = ref.watch(posSearchQueryProvider).toLowerCase();
 
     return productsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Erreur de chargement: $err')),
       data: (products) {
-        if (products.isEmpty) {
+        final filteredProducts = products.where((p) {
+          final nameMatch = p.name.toLowerCase().contains(searchQuery);
+          final skuMatch = p.sku?.toLowerCase().contains(searchQuery) ?? false;
+          final barcodeMatch = p.barcode?.toLowerCase().contains(searchQuery) ?? false;
+          return nameMatch || skuMatch || barcodeMatch;
+        }).toList();
+
+        if (filteredProducts.isEmpty) {
           return const Center(
-            child: Text('Aucun produit disponible. Allez dans "Produits" pour en ajouter.'),
+            child: Text('Aucun produit trouvé.'),
           );
         }
 
@@ -149,9 +161,9 @@ class PosScreen extends ConsumerWidget {
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
           ),
-          itemCount: products.length,
+          itemCount: filteredProducts.length,
           itemBuilder: (context, index) {
-            final product = products[index];
+            final product = filteredProducts[index];
             return Card(
               clipBehavior: Clip.antiAlias,
               child: InkWell(

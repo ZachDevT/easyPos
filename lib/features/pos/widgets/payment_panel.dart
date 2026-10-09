@@ -90,7 +90,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
     final insertedSaleId = await db.transaction(() async {
       final saleId = await db.into(db.sales).insert(
         SalesCompanion.insert(
-          saleNumber: "INV-\${DateTime.now().year}\${DateTime.now().month.toString().padLeft(2,'0')}\${DateTime.now().day.toString().padLeft(2,'0')}-\${DateTime.now().hour.toString().padLeft(2,'0')}\${DateTime.now().minute.toString().padLeft(2,'0')}\${DateTime.now().second.toString().padLeft(2,'0')}",
+          saleNumber: "INV-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2,'0')}${DateTime.now().day.toString().padLeft(2,'0')}-${DateTime.now().hour.toString().padLeft(2,'0')}${DateTime.now().minute.toString().padLeft(2,'0')}${DateTime.now().second.toString().padLeft(2,'0')}",
           date: DateTime.now(),
           subtotal: widget.totalAmount,
           discount: const drift.Value(0.0),
@@ -186,8 +186,8 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('\${totalBase.toStringAsFixed(2)} \$baseCurrency', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                      Text('\${totalAlt.toStringAsFixed(0)} \$altCurrency', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.primaryColor.withOpacity(0.6))),
+                      Text('${totalBase.toStringAsFixed(2)} $baseCurrency', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                      Text('${totalAlt.toStringAsFixed(0)} $altCurrency', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.primaryColor.withOpacity(0.6))),
                     ],
                   )
                 ],
@@ -361,7 +361,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                isEnough ? '\${changeInBase.toStringAsFixed(2)} \$baseCurrency' : 'Montant insuffisant',
+                isEnough ? '${changeInBase.toStringAsFixed(2)} $baseCurrency' : 'Montant insuffisant',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -370,7 +370,7 @@ class _PaymentPanelState extends ConsumerState<PaymentPanel> {
               ),
               if (isEnough)
                 Text(
-                  '\${changeInAlt.toStringAsFixed(0)} \$altCurrency',
+                  '${changeInAlt.toStringAsFixed(0)} $altCurrency',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
